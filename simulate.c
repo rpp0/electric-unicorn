@@ -289,7 +289,7 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, uint16_t* 
     uc_reg_read_batch(uc, registers, ptrs, NUM_REGISTERS);
 
     uint16_t hw_dist_sum = hamming_distance_registers(old_vals, vals);
-    printf("HW: %hu\n", hw_dist_sum);
+    //printf("HW: %hu\n", hw_dist_sum);
     results[instrcnt] = hw_dist_sum;
 
     instrcnt += 1;
