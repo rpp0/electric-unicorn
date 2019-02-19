@@ -8,6 +8,27 @@ import argparse
 from electricunicorn import trace_register_hws
 
 
+def print_numpy_as_hex(np_array: np.ndarray):
+    cnt = 0
+    for elem in np_array.flat:
+        cnt += 1
+        print("%02x " % elem, end='')
+
+        if cnt == 16:
+            cnt = 0
+            print('')
+    if cnt != 0:
+        print('')
+
+
+def read_memory(memory: np.ndarray, address, length):
+    return memory[address:address+length]
+
+
+def write_memory(memory: np.ndarray, address, data: bytes):
+    memory[address:address+len(data)] = bytearray(data)
+
+
 class EUException(Exception):
     pass
 
@@ -17,15 +38,21 @@ class Elf:
         self.meta = meta
         self.memory = memory
         self.sp = None
+        self._symbol_address_map = {}
         self._create_stack()
-        self.pmk = next(s for s in meta.symbols if s.name == 'fake_pmk').value
-        self.ptk = next(s for s in meta.symbols if s.name == 'fake_ptk').value
-        self.stop_addr = next(s for s in meta.symbols if s.name == 'stop').value
+        self._build_symbol_address_map()
 
     def _create_stack(self):
         self.memory.extend(bytearray(1024*1024))
         self.sp = len(self.memory)
         self.memory.extend(bytearray(1024*1024))
+
+    def _build_symbol_address_map(self):
+        for s in self.meta.symbols:
+            self._symbol_address_map[s.name] = s.value
+
+    def get_symbol_address(self, symbol_name):
+        return self._symbol_address_map[symbol_name]
 
 
 class ElectricUnicorn:
@@ -53,22 +80,17 @@ class ElectricUnicorn:
 
         return Elf(elf, buffer)
 
-    def patch(self, address, data):
-        self.elf.memory[address:address + len(data)] = data
+    def hmac_sha1(self, pmk, data):
+        # Prepare memory
+        local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
+        write_memory(local_memory, self.elf.get_symbol_address('fake_pmk'), pmk)
+        write_memory(local_memory, self.elf.get_symbol_address('data'), data)
 
-    def start(self):
-        max_mem_bytes = 1024*1024*1024
-        results = np.zeros(int(max_mem_bytes / np.ushort().nbytes), dtype=np.ushort)
-        test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
-        self.patch(self.elf.pmk, test_key)
-        # TODO Change Cython code to get this stuff from self.elf data structure
-        trace_register_hws(results, self.elf.memory, len(self.elf.memory), self.elf.meta.entrypoint, self.elf.sp, self.elf.pmk, self.elf.ptk, self.elf.stop_addr)
+        # Simulate
+        results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
+        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('fake_ptk'), 64))
 
-        if self.dataset_path is None:
-            plt.plot(results)
-            plt.show()
-        else:
-            print("Saving dataset...")
+        return results
 
 
 if __name__ == "__main__":
@@ -77,5 +99,12 @@ if __name__ == "__main__":
     arg_parser.add_argument('dataset_path', nargs='?', type=str, default=None, help='Path to store the simulated traces in.')
     args, _ = arg_parser.parse_known_args()
 
+    test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
     e = ElectricUnicorn(args.elf_path, dataset_path=args.dataset_path)
-    e.start()
+    
+    results = e.hmac_sha1(pmk=test_key, data=b"\x00"*76)
+    if args.dataset_path is None:
+        plt.plot(results)
+        plt.show()
+    else:
+        print("Saving dataset...")

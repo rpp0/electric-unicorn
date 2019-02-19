@@ -328,9 +328,7 @@ uint64_t round_up(uint64_t number) {
 }
 
 
-uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t pmk, uint64_t ptk, uint64_t stop_addr) {
-    uint8_t tmp[64];
-
+uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr) {
     printf("Memory size: %lu\n", memory_size);
     uint64_t aligned_memory_size = round_up(memory_size);
     printf("Aligned mem: %lu\n", aligned_memory_size);
@@ -359,7 +357,7 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
     // Setup memory and registers
     uc_mem_map(uc, 0, aligned_memory_size, UC_PROT_ALL);
     //uc_mem_map(uc, 0xfffffffffffff000, PAGE_SIZE, UC_PROT_ALL); // stack_chk_fail fix
-    uc_mem_write(uc, 0, memory, memory_size);
+    uc_mem_write(uc, 0, memory, memory_size); // Copy memory to internal Unicorn memory
     uc_reg_write(uc, UC_X86_REG_RSP, &sp); // X86
     //int rflags = 0x00000200; // X86
     //uc_reg_write(uc, UC_X86_REG_EFLAGS, &rflags); // X86
@@ -385,15 +383,12 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
         return 0;
     }
 
+    // Copy internal Unicorn memory to memory
+    uc_mem_read(uc, 0, memory, memory_size);
+
+
     printf("Emulation completed\n");
     printf("Instructions: %d\n", instrcnt);
-
-    if(!uc_mem_read(uc, ptk, tmp, 64)) {
-        for(int i = 0; i < 64; i++) {
-            printf("%02x ", tmp[i]);
-        }
-        printf("\n");
-    }
 
     uc_close(uc);
 
