@@ -5,10 +5,16 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import random
+import struct
+from datetime import datetime
 from electricunicorn import trace_register_hws
 
 
-def print_numpy_as_hex(np_array: np.ndarray):
+def print_numpy_as_hex(np_array: np.ndarray, label: str=None):
+    if label is not None:
+        print(label + ": ")
+
     cnt = 0
     for elem in np_array.flat:
         cnt += 1
@@ -27,6 +33,36 @@ def read_memory(memory: np.ndarray, address, length):
 
 def write_memory(memory: np.ndarray, address, data: bytes):
     memory[address:address+len(data)] = bytearray(data)
+
+
+def random_uniform(length):
+    with open("/dev/urandom", "rb") as f:
+        return f.read(length)
+
+
+def random_hamming(length, subkey_size):
+    if subkey_size == 1:
+        format = "B"
+    elif subkey_size == 2:
+        format = "h"
+    elif subkey_size == 4:
+        format = "I"
+    else:
+        raise ValueError("Invalid subkey size")
+
+    num_bits = subkey_size * 8
+
+    result = b""
+    for i in range(0, length, subkey_size):
+        num_ones = random.randint(0, num_bits)
+        num_zeros = num_bits - num_ones
+        integer_str = (num_ones * "1") + (num_zeros * "0")
+        shuffled_str = ''.join(random.sample(integer_str, num_bits))
+        shuffled_int = int(shuffled_str, 2)
+        result += struct.pack(format, shuffled_int)
+
+    assert(len(result) == length)
+    return result
 
 
 class EUException(Exception):
@@ -88,7 +124,18 @@ class ElectricUnicorn:
 
         # Simulate
         results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
-        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('fake_ptk'), 64))
+        print_numpy_as_hex(np.array(bytearray(pmk), dtype=np.uint8), label="PMK")
+        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
+
+        return results
+
+    def memcpy(self, data):
+        local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
+        write_memory(local_memory, self.elf.get_symbol_address('data'), data)
+
+        # Simulate
+        results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
+        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('buffer'), 128), label="Data")
 
         return results
 
@@ -96,15 +143,59 @@ class ElectricUnicorn:
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
     arg_parser.add_argument('elf_path', type=str, help='Path to the ELF to analyze.')
+    arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
     arg_parser.add_argument('dataset_path', nargs='?', type=str, default=None, help='Path to store the simulated traces in.')
+    arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
+
+    keys = []
+    plaintexts = []
+    ciphertexts = []
+    trace_set = []
+
     e = ElectricUnicorn(args.elf_path, dataset_path=args.dataset_path)
-    
-    results = e.hmac_sha1(pmk=test_key, data=b"\x00"*76)
-    if args.dataset_path is None:
-        plt.plot(results)
-        plt.show()
-    else:
-        print("Saving dataset...")
+
+    for i in range(0, args.num_traces):
+        #pmk = b"\x00\x00" + random_uniform(1) + b"\x00"*29
+        #pmk = random_uniform(32)
+        results = None
+        if args.elf_type == 'hmac-sha1':
+            pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
+            data = b"\x00" * 76
+            results = e.hmac_sha1(pmk=pmk, data=data)
+        elif args.elf_type == 'memcpy':
+            data_to_copy = random_hamming(128, subkey_size=1)
+            buffer = b"\x00"*128
+            results = e.memcpy(data=data_to_copy)
+
+        if args.dataset_path is None:
+            plt.plot(results)
+            plt.show()
+        else:
+            if args.elf_type == 'hmac-sha1':
+                plaintexts.append(bytearray(data))
+                keys.append(bytearray(pmk))
+            elif args.elf_type == 'memcpy':
+                plaintexts.append(bytearray(buffer))
+                keys.append(bytearray(data_to_copy))
+
+            trace_set.append(results.astype(np.float32))
+
+            if len(trace_set) == 256:
+                assert (len(trace_set) == len(keys))
+                np_trace_set = np.array(trace_set)
+                np_plaintexts = np.array(plaintexts, dtype=np.uint8)
+                np_keys = np.array(keys, dtype=np.uint8)
+
+                filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
+                np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
+                np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
+                np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
+
+                keys = []
+                plaintexts = []
+                ciphertexts = []
+                trace_set = []
+
