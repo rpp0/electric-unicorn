@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import sys
+sys.path.insert(0, '/home/pieter/projects/em/')
+
 
 import lief
 import os
@@ -9,6 +12,7 @@ import random
 import struct
 from datetime import datetime
 from electricunicorn import trace_register_hws
+from emcap_online_client import EMCapOnlineClient
 
 
 def print_numpy_as_hex(np_array: np.ndarray, label: str=None):
@@ -129,13 +133,14 @@ class ElectricUnicorn:
 
         return results
 
-    def memcpy(self, data):
+    def memcpy(self, data, buffer):
         local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
         write_memory(local_memory, self.elf.get_symbol_address('data'), data)
+        write_memory(local_memory, self.elf.get_symbol_address('buffer'), buffer)
 
         # Simulate
         results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
-        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('buffer'), 128), label="Data")
+        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('buffer'), 128), label="Data (after)")
 
         return results
 
@@ -146,6 +151,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
     arg_parser.add_argument('dataset_path', nargs='?', type=str, default=None, help='Path to store the simulated traces in.')
     arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
+    arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
@@ -156,6 +162,10 @@ if __name__ == "__main__":
     trace_set = []
 
     e = ElectricUnicorn(args.elf_path, dataset_path=args.dataset_path)
+    client = None
+    if args.online_ip is not None:
+        client = EMCapOnlineClient()
+        client.connect(args.online_ip)
 
     for i in range(0, args.num_traces):
         #pmk = b"\x00\x00" + random_uniform(1) + b"\x00"*29
@@ -168,34 +178,40 @@ if __name__ == "__main__":
         elif args.elf_type == 'memcpy':
             data_to_copy = random_hamming(128, subkey_size=1)
             buffer = b"\x00"*128
-            results = e.memcpy(data=data_to_copy)
+            #buffer = random_hamming(128, subkey_size=1)
+            results = e.memcpy(buffer=buffer, data=data_to_copy)
 
         if args.dataset_path is None:
-            plt.plot(results)
-            plt.show()
-        else:
-            if args.elf_type == 'hmac-sha1':
-                plaintexts.append(bytearray(data))
-                keys.append(bytearray(pmk))
-            elif args.elf_type == 'memcpy':
-                plaintexts.append(bytearray(buffer))
-                keys.append(bytearray(data_to_copy))
+            if args.online_ip is None:
+                plt.plot(results)
+                plt.show()
+                continue
 
-            trace_set.append(results.astype(np.float32))
+        if args.elf_type == 'hmac-sha1':
+            plaintexts.append(bytearray(data))
+            keys.append(bytearray(pmk))
+        elif args.elf_type == 'memcpy':
+            plaintexts.append(bytearray(buffer))
+            keys.append(bytearray(data_to_copy))
 
-            if len(trace_set) == 256:
-                assert (len(trace_set) == len(keys))
-                np_trace_set = np.array(trace_set)
-                np_plaintexts = np.array(plaintexts, dtype=np.uint8)
-                np_keys = np.array(keys, dtype=np.uint8)
+        trace_set.append(results.astype(np.float32))
 
+        if len(trace_set) == 256:
+            assert (len(trace_set) == len(keys))
+            np_trace_set = np.array(trace_set)
+            np_plaintexts = np.array(plaintexts, dtype=np.uint8)
+            np_keys = np.array(keys, dtype=np.uint8)
+
+            if args.online_ip is None:  # Store to file
                 filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
                 np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
                 np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
                 np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
+            else:
+                client.send(np_trace_set, np_plaintexts, None, np_keys, None)
 
-                keys = []
-                plaintexts = []
-                ciphertexts = []
-                trace_set = []
+            keys = []
+            plaintexts = []
+            ciphertexts = []
+            trace_set = []
 
