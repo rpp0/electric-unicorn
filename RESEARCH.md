@@ -15,24 +15,24 @@ Idee 1: fail
 Idee 2: Tombala
 For each instruction / time step t:
     - Set key = 0, attacker-controlled data = 0
-    - Store full memory + registers state of program (= previous state)
-    - Execute instruction and store full memory + registers state (= reference state)
-    - Rewind to prev state
+    - Store full memory + registers state of program (= clean state)
+    - Execute instruction up to time = t-1 and store full memory + registers state (= reference state)
+    - Rewind to clean state
     For i in 0..128 (num_key_bits):
         - Set key = 1 << i (flip one bit)
-        - Execute instruction and store full memory + registers state (= current state)
+        - Execute instruction up to time = t and store full memory + registers state (= current state)
         - Diff current state and reference state. Store the addresses, registers that changed (if any) together with the instruction (Capstone) in a list (key_bit_list) for time = t and bit i.
-        - Rewind to prev state
+        - Rewind to clean state
     - Optional: take the union of all changes for time = t in key_bit_list (if considering multiple bits)
     For i in 0..128 (num_attacker_bits):
         - Set attacker-controlled data = 0
-        - Execute instruction and store full memory + registers state (= current state)
+        - Execute instruction up to time = t and store full memory + registers state (= current state)
         - Diff current state and reference state. Store the addresses, registers that changed (if any) together with the instruction (Capstone) in a list (data_bit_list) for time = t and bit i.
         - If a change is present for bit i in both the data_bit_list, and key_bit list, store the bit in the both_bit_list for time = t
-        - Rewind to prev state
+        - Rewind to clean state
     - Optional: take the union of all changes for time = t in data_bit_list (if considering multiple bits)
     - Optional: take the union of all changes for time = t in both_bit_list (if considering multiple bits)
-    
+
 
 ## Tutorial
 

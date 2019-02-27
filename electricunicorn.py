@@ -11,7 +11,7 @@ import argparse
 import random
 import struct
 from datetime import datetime
-from electricunicorn import trace_register_hws
+from electricunicorn import trace_register_hws, emulate
 from emcap_online_client import EMCapOnlineClient
 
 
@@ -133,6 +133,27 @@ class ElectricUnicorn:
 
         return results
 
+    def hmac_sha1_keydep(self):
+        for t in range(1, 10):
+            pmk = b"\x00"*32
+            data = b"\x00"*72
+            # TODO make State object that also contains register values besides memory. Should contain copy and diff methods
+            clean_state = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
+            write_memory(clean_state, self.elf.get_symbol_address('fake_pmk'), pmk)
+            write_memory(clean_state, self.elf.get_symbol_address('data'), data)
+
+            ref_state = np.copy(clean_state)
+            if t > 1:
+                emulate(ref_state, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'), t-1)
+
+            for i in range(0, len(pmk)*8):
+                current_state = np.copy(clean_state)
+                write_memory(current_state, self.elf.get_symbol_address('fake_pmk'), b"%064x" % (1 << i))
+                emulate(current_state, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'), t)
+                # Diff here and store result in key_bit_list[t][i]
+
+            # Do the same for data
+
     def memcpy(self, data, buffer):
         local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
         write_memory(local_memory, self.elf.get_symbol_address('data'), data)
@@ -144,6 +165,9 @@ class ElectricUnicorn:
 
         return results
 
+    def memcpy_keydep(self):
+        raise NotImplementedError
+
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
@@ -152,6 +176,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('dataset_path', nargs='?', type=str, default=None, help='Path to store the simulated traces in.')
     arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
+    arg_parser.add_argument('--keydep', default=False, action='store_true', help='Create key dependency graph')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
@@ -172,14 +197,24 @@ if __name__ == "__main__":
         #pmk = random_uniform(32)
         results = None
         if args.elf_type == 'hmac-sha1':
-            pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
-            data = b"\x00" * 76
-            results = e.hmac_sha1(pmk=pmk, data=data)
+            if not args.keydep:
+                pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
+                data = b"\x00" * 76
+                results = e.hmac_sha1(pmk=pmk, data=data)
+            else:
+                results = e.hmac_sha1_keydep()
         elif args.elf_type == 'memcpy':
-            data_to_copy = random_hamming(128, subkey_size=1)
-            buffer = b"\x00"*128
-            #buffer = random_hamming(128, subkey_size=1)
-            results = e.memcpy(buffer=buffer, data=data_to_copy)
+            if not args.keydep:
+                data_to_copy = random_hamming(128, subkey_size=1)
+                buffer = b"\x00"*128
+                #buffer = random_hamming(128, subkey_size=1)
+                results = e.memcpy(buffer=buffer, data=data_to_copy)
+            else:
+                results = e.memcpy_keydep()
+
+        if args.keydep:
+            print("Done keydep")
+            exit(0)
 
         if args.dataset_path is None:
             if args.online_ip is None:

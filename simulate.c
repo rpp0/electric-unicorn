@@ -11,6 +11,9 @@
 #define PAGE_SIZE 4096
 #define NUM_REGISTERS 174
 
+uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions);
+uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions);
+
 /*
 int registers[] = { // ARM
     UC_ARM_REG_SB,
@@ -330,8 +333,6 @@ uint64_t round_up(uint64_t number) {
 
 uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr) {
     printf("Memory size: %lu\n", memory_size);
-    uint64_t aligned_memory_size = round_up(memory_size);
-    printf("Aligned mem: %lu\n", aligned_memory_size);
     printf("Entrypoint : %lu\n", entrypoint);
     printf("Stop addr  : %lu\n", stop_addr);
     printf("SP         : %lu\n", sp);
@@ -354,6 +355,49 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
         return 0;
     }
 
+	// Assign register pointers
+	for (int i = 0; i < NUM_REGISTERS; i++) {
+        ptrs[i] = &vals[i];
+        old_vals[i] = 0;
+    }
+
+	// Setup hooks
+	uc_hook_add(uc, &instruction_hook, UC_HOOK_CODE, hook_code, results, 0, memory_size);
+	uc_hook_add(uc, &instruction_hook, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 1, 0);
+
+    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, entrypoint, sp, stop_addr, 0);
+
+    printf("Emulation completed\n");
+    printf("Instructions: %ld\n", num_instructions);
+
+    uc_close(uc);
+
+    return num_instructions;
+}
+
+/**
+ * Just emulate a binary until max_instructions, without hooks.
+ */
+uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions) {
+    uc_engine *uc;
+    uc_err err;
+
+    err = uc_open(UC_ARCH_X86, UC_MODE_64, &uc);
+    if (err) {
+        printf("Failed on uc_open() with error returned: %u (%s)\n", err, uc_strerror(err));
+        return 0;
+    }
+
+    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, entrypoint, sp, stop_addr, max_instructions);
+
+    uc_close(uc);
+    return num_instructions;
+}
+
+uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions) {
+    uc_err err;
+	uint64_t aligned_memory_size = round_up(memory_size);
+
     // Setup memory and registers
     uc_mem_map(uc, 0, aligned_memory_size, UC_PROT_ALL);
     //uc_mem_map(uc, 0xfffffffffffff000, PAGE_SIZE, UC_PROT_ALL); // stack_chk_fail fix
@@ -365,19 +409,9 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
     //int apsr = 0xFFFFFFFF;
 	//uc_reg_write(uc, UC_ARM_REG_APSR, &apsr);
 
-	// Assign register pointers
-	for (int i = 0; i < NUM_REGISTERS; i++) {
-        ptrs[i] = &vals[i];
-        old_vals[i] = 0;
-    }
-
-	// Setup hooks
-	uc_hook_add(uc, &instruction_hook, UC_HOOK_CODE, hook_code, results, 0, memory_size);
-	uc_hook_add(uc, &instruction_hook, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 1, 0);
-
     // Run!
     instrcnt = 0;
-    err = uc_emu_start(uc, entrypoint, stop_addr, 0, 0);
+    err = uc_emu_start(uc, entrypoint, stop_addr, 0, max_instructions);
     if (err) {
         printf("Failed on uc_emu_start() with error returned: %u (%s)\n", err, uc_strerror(err));
         return 0;
@@ -385,12 +419,6 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
 
     // Copy internal Unicorn memory to memory
     uc_mem_read(uc, 0, memory, memory_size);
-
-
-    printf("Emulation completed\n");
-    printf("Instructions: %d\n", instrcnt);
-
-    uc_close(uc);
 
     return instrcnt;
 }
