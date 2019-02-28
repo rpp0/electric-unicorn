@@ -12,7 +12,45 @@ import random
 import struct
 from datetime import datetime
 from electricunicorn import trace_register_hws, emulate
+from unicorn.x86_const import *
 from emcap_online_client import EMCapOnlineClient
+
+
+class X64EmulationState:
+    def __init__(self, elf=None):
+        if elf is not None:
+            self.memory = np.array(elf.memory, dtype=np.uint8)
+            self.registers = np.zeros(UC_X86_REG_ENDING-1, dtype=np.uint64)  # Do not include UC_X86_REG_ENDING -- weird stuff will happen
+            self.elf = elf
+        else:
+            self.memory = None
+            self.registers = None
+            self.elf = None
+
+    def write_symbol(self, symbol_name, data: bytes):
+        self.write_memory(self.elf.get_symbol_address(symbol_name), data)
+
+    def read_memory(self, address, length):
+        return self.memory[address:address + length]
+
+    def write_memory(self, address, data: bytes):
+        self.memory[address:address+len(data)] = bytearray(data)
+
+    def read_register(self, register):
+        return self.registers[register]
+
+    def write_register(self, register, value):
+        self.registers[register] = value
+
+    def copy(self):
+        new = X64EmulationState()
+        new.memory = np.copy(self.memory)
+        new.registers = np.copy(self.registers)
+        new.elf = self.elf
+        return new
+
+    def diff(self, other):
+        print("Diffing")
 
 
 def print_numpy_as_hex(np_array: np.ndarray, label: str=None):
@@ -138,18 +176,19 @@ class ElectricUnicorn:
             pmk = b"\x00"*32
             data = b"\x00"*72
             # TODO make State object that also contains register values besides memory. Should contain copy and diff methods
-            clean_state = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
-            write_memory(clean_state, self.elf.get_symbol_address('fake_pmk'), pmk)
-            write_memory(clean_state, self.elf.get_symbol_address('data'), data)
+            clean_state = X64EmulationState(self.elf)
+            clean_state.write_symbol('fake_pmk', pmk)
+            clean_state.write_symbol('data', data)
+            clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
-            ref_state = np.copy(clean_state)
+            ref_state = clean_state.copy()
             if t > 1:
-                emulate(ref_state, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'), t-1)
+                emulate(ref_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t-1)
 
             for i in range(0, len(pmk)*8):
-                current_state = np.copy(clean_state)
-                write_memory(current_state, self.elf.get_symbol_address('fake_pmk'), b"%064x" % (1 << i))
-                emulate(current_state, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'), t)
+                current_state = clean_state.copy()
+                current_state.write_symbol('fake_pmk', b"%064x" % (1 << i))
+                emulate(current_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
                 # Diff here and store result in key_bit_list[t][i]
 
             # Do the same for data

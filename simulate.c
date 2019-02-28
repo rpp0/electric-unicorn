@@ -9,13 +9,14 @@
 #define ARM_CODE "\x37\x00\xa0\xe3\x03\x10\x42\xe0" // mov r0, #0x37; sub r1, r2, r3
 #define THUMB_CODE "\x83\xb0" // sub    sp, #0xc
 #define PAGE_SIZE 4096
-#define NUM_REGISTERS 174
+#define NUM_HAMMING_REGISTERS 174
+#define NUM_REGISTERS UC_X86_REG_ENDING-1
 
-uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions);
-uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions);
+uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
+uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
 
 /*
-int registers[] = { // ARM
+int hamming_registers[] = { // ARM
     UC_ARM_REG_SB,
     UC_ARM_REG_SL,
     UC_ARM_REG_FP,
@@ -42,7 +43,7 @@ int registers[] = { // ARM
     UC_ARM_REG_CPSR
 };
 */
-int registers[] = { // X86
+int hamming_registers[] = { // X86
 	UC_X86_REG_FPSW,
 	UC_X86_REG_FS,
 	UC_X86_REG_GS,
@@ -219,16 +220,16 @@ int registers[] = { // X86
 	UC_X86_REG_ENDING,
 };
 
-uint64_t old_vals[NUM_REGISTERS];
-uint64_t vals[NUM_REGISTERS];
-void *ptrs[NUM_REGISTERS];
+uint64_t old_vals[NUM_HAMMING_REGISTERS];
+uint64_t vals[NUM_HAMMING_REGISTERS];
+void *ptrs[NUM_HAMMING_REGISTERS];
 uint64_t zero = 0;
 int instrcnt = 0;
 
 static void hook_code_debug(uc_engine *uc, uint64_t address, uint32_t size, void *memory) {
-    uc_reg_read_batch(uc, registers, ptrs, NUM_REGISTERS);
+    uc_reg_read_batch(uc, hamming_registers, ptrs, NUM_HAMMING_REGISTERS);
 
-    for(uint32_t i = 0; i < NUM_REGISTERS; i++) {
+    for(uint32_t i = 0; i < NUM_HAMMING_REGISTERS; i++) {
         printf("\t0x%016lx\n", vals[i]);
     }
 
@@ -280,7 +281,7 @@ static uint16_t hamming_distance_64(uint64_t v1, uint64_t v2) {
 static uint16_t hamming_distance_registers(uint64_t* old_regs, uint64_t* new_regs) {
     uint16_t sum = 0;
 
-    for(int i = 0; i < NUM_REGISTERS; i++) {
+    for(int i = 0; i < NUM_HAMMING_REGISTERS; i++) {
         sum += hamming_distance_64(old_regs[i], new_regs[i]);
         old_regs[i] = new_regs[i];
     }
@@ -289,7 +290,7 @@ static uint16_t hamming_distance_registers(uint64_t* old_regs, uint64_t* new_reg
 }
 
 static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, uint16_t* results) {
-    uc_reg_read_batch(uc, registers, ptrs, NUM_REGISTERS);
+    uc_reg_read_batch(uc, hamming_registers, ptrs, NUM_HAMMING_REGISTERS);
 
     uint16_t hw_dist_sum = hamming_distance_registers(old_vals, vals);
     //printf("HW: %hu\n", hw_dist_sum);
@@ -341,7 +342,7 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
     assert(hamming_distance_64(0x0, 0x8000000000000000) == 2);
     assert(hamming_distance_64(0x1, 0x0) == 1);
     assert(hamming_distance_64(0xffffffffffffffff, 0x0) == 64);
-    assert((sizeof(registers) / sizeof(int)) == NUM_REGISTERS);
+    assert((sizeof(hamming_registers) / sizeof(int)) == NUM_HAMMING_REGISTERS);
 
     uc_engine *uc;
     uc_err err;
@@ -356,16 +357,28 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
     }
 
 	// Assign register pointers
-	for (int i = 0; i < NUM_REGISTERS; i++) {
+	for (int i = 0; i < NUM_HAMMING_REGISTERS; i++) {
         ptrs[i] = &vals[i];
         old_vals[i] = 0;
     }
 
 	// Setup hooks
 	uc_hook_add(uc, &instruction_hook, UC_HOOK_CODE, hook_code, results, 0, memory_size);
-	uc_hook_add(uc, &instruction_hook, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 1, 0);
+	uc_hook_add(uc, &instruction_hook, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 0, 0);
 
-    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, entrypoint, sp, stop_addr, 0);
+    // Setup registers
+    uint64_t registers[NUM_REGISTERS];
+    for(uint64_t i = 0; i < NUM_REGISTERS; i++)
+        registers[i] = 0;
+    registers[UC_X86_REG_RSP] = sp;
+    // TODO use registers[] array for this
+	//int rflags = 0x00000200; // X86
+    //uc_reg_write(uc, UC_X86_REG_EFLAGS, &rflags); // X86
+    //uc_reg_write(uc, UC_ARM_REG_SP, &sp); // ARM
+    //int apsr = 0xFFFFFFFF;
+	//uc_reg_write(uc, UC_ARM_REG_APSR, &apsr);
+
+    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, registers, NUM_REGISTERS, entrypoint, stop_addr, 0);
 
     printf("Emulation completed\n");
     printf("Instructions: %ld\n", num_instructions);
@@ -378,7 +391,7 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
 /**
  * Just emulate a binary until max_instructions, without hooks.
  */
-uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions) {
+uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions) {
     uc_engine *uc;
     uc_err err;
 
@@ -388,26 +401,25 @@ uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t entrypoin
         return 0;
     }
 
-    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, entrypoint, sp, stop_addr, max_instructions);
+    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, registers, registers_size, entrypoint, stop_addr, max_instructions);
 
     uc_close(uc);
+
     return num_instructions;
 }
 
-uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr, uint64_t max_instructions) {
+uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions) {
     uc_err err;
 	uint64_t aligned_memory_size = round_up(memory_size);
 
-    // Setup memory and registers
+    // Setup memory
     uc_mem_map(uc, 0, aligned_memory_size, UC_PROT_ALL);
-    //uc_mem_map(uc, 0xfffffffffffff000, PAGE_SIZE, UC_PROT_ALL); // stack_chk_fail fix
     uc_mem_write(uc, 0, memory, memory_size); // Copy memory to internal Unicorn memory
-    uc_reg_write(uc, UC_X86_REG_RSP, &sp); // X86
-    //int rflags = 0x00000200; // X86
-    //uc_reg_write(uc, UC_X86_REG_EFLAGS, &rflags); // X86
-    //uc_reg_write(uc, UC_ARM_REG_SP, &sp); // ARM
-    //int apsr = 0xFFFFFFFF;
-	//uc_reg_write(uc, UC_ARM_REG_APSR, &apsr);
+
+    // Setup registers
+    for(uint64_t i = 0; i < registers_size; i++) {
+        uc_reg_write(uc, i, &registers[i]);
+    }
 
     // Run!
     instrcnt = 0;
@@ -419,6 +431,12 @@ uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, u
 
     // Copy internal Unicorn memory to memory
     uc_mem_read(uc, 0, memory, memory_size);
+
+    // Copy internal Unicorn registers to registers
+    for(uint64_t i = 0; i < registers_size; i++) {
+        uc_reg_read(uc, i, &registers[i]);
+    }
+
 
     return instrcnt;
 }
