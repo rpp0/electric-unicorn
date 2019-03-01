@@ -10,10 +10,43 @@ import matplotlib.pyplot as plt
 import argparse
 import random
 import struct
+import binascii
 from datetime import datetime
 from electricunicorn import trace_register_hws, emulate
 from unicorn.x86_const import *
 from emcap_online_client import EMCapOnlineClient
+from x86_const_enum import X86ConstEnum
+from collections import namedtuple
+
+#MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
+
+
+class DependencyGraph:
+    def __init__(self, name=None, contains_registers=False):
+        self._graph = {}
+        self.name = name
+        self.contains_registers = contains_registers
+
+    def update(self, key, t, value):
+        if key in self._graph:
+            self._graph[key].append((t, value))
+        else:
+            self._graph[key] = [(t, value)]
+
+    def _deps_to_str(self, deps_list):
+        result = ""
+        for dep in deps_list:
+            result += "(t=%d,v=%d) -> " % dep
+        return result
+
+    def __repr__(self):
+        result = "" if self.name is None else ("%s\n" % self.name)
+        for key, deps in self._graph.items():
+            if self.contains_registers:
+                result += "%s: %s\n" % (X86ConstEnum(key).name, self._deps_to_str(deps))
+            else:
+                result += "0x%08x: %s\n" % (key, self._deps_to_str(deps))
+        return result
 
 
 class X64EmulationState:
@@ -49,8 +82,26 @@ class X64EmulationState:
         new.elf = self.elf
         return new
 
-    def diff(self, other):
-        print("Diffing")
+    def diff(self, previous_state, t, memory_graph, register_graph):
+        if len(previous_state.memory) != len(self.memory):
+            raise EUException("Cannot diff memories of different sizes")
+        if len(previous_state.registers) != len(self.registers):
+            raise EUException("Cannot diff registers of different sizes")
+
+        for i in range(len(self.memory)):
+            if previous_state.memory[i] != self.memory[i]:
+                memory_graph.update(i, t, self.memory[i])
+
+        for i in range(len(self.registers)):
+            if previous_state.registers[i] != self.registers[i]:
+                register_graph.update(i, t, self.registers[i])
+
+    def __repr__(self):
+        result = "Memory:\n"
+        result += str(self.memory)
+        result += "\nRegisters:\n"
+        result += str(self.registers)
+        return result
 
 
 def print_numpy_as_hex(np_array: np.ndarray, label: str=None):
@@ -154,7 +205,7 @@ class ElectricUnicorn:
             begin = s.virtual_address
             end = s.virtual_address + len(s.content)
             buffer[begin:end] = s.content
-            print("[%d:%d] -> %s" % (begin, end, str(s.content)))
+            #print("[%d:%d] -> %s" % (begin, end, str(s.content)))
 
         return Elf(elf, buffer)
 
@@ -172,26 +223,35 @@ class ElectricUnicorn:
         return results
 
     def hmac_sha1_keydep(self):
-        for t in range(1, 10):
-            pmk = b"\x00"*32
-            data = b"\x00"*72
-            # TODO make State object that also contains register values besides memory. Should contain copy and diff methods
-            clean_state = X64EmulationState(self.elf)
-            clean_state.write_symbol('fake_pmk', pmk)
-            clean_state.write_symbol('data', data)
-            clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
+        memory_deps = DependencyGraph(name="Memory", contains_registers=False)
+        register_deps = DependencyGraph(name="Registers", contains_registers=True)
 
-            ref_state = clean_state.copy()
-            if t > 1:
-                emulate(ref_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t-1)
+        pmk = b"\x00" * 32
+        data = b"\x00" * 72
 
-            for i in range(0, len(pmk)*8):
+        clean_state = X64EmulationState(self.elf)
+        clean_state.write_symbol('fake_pmk', pmk)
+        clean_state.write_symbol('data', data)
+        clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
+
+        for i in range(0, 1):
+            for t in range(0, 10):
+                ref_state = clean_state.copy()
+                if t > 1:
+                    emulate(ref_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t-1)
+
                 current_state = clean_state.copy()
-                current_state.write_symbol('fake_pmk', b"%064x" % (1 << i))
+                current_state.write_symbol('fake_pmk', binascii.unhexlify("%064x" % (1 << i)))
                 emulate(current_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
-                # Diff here and store result in key_bit_list[t][i]
 
-            # Do the same for data
+                # Diff here and store result in key_bit_list[t][i]
+                current_state.diff(ref_state, t, memory_deps, register_deps)
+
+                # Do the same for data
+
+        # Print dependencies
+        print(memory_deps)
+        print(register_deps)
 
     def memcpy(self, data, buffer):
         local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
