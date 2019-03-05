@@ -4,17 +4,28 @@ import pickle
 from dependencygraph import DependencyGraph
 from graphviz import Digraph, nohtml
 from x86_const_enum import X86ConstEnum
+from unicorn.x86_const import *
 
 
 class DependencyGraphVisualization:
     def __init__(self, graph):
-        self.g = Digraph('g', filename='tree.gv', node_attr={'shape': 'record', 'height': '.1'})
+        self.g = Digraph('g', filename='tree.gv', engine='dot', node_attr={'shape': 'record', 'height': '.1'}, graph_attr={'splines': 'line'})
         self.subgraph = {}
         for t in range(graph.find_max_t()+1):
             self.subgraph[t] = Digraph("subgraph%d" % t, node_attr={'shape': 'record', 'height': '.1'})
             self.subgraph[t].graph_attr.update(rank='same')
         self.nodes = set()
         self.graph = graph
+        self.excluded = [
+            UC_X86_REG_EDX,
+            UC_X86_REG_DL,
+            UC_X86_REG_DH,
+            UC_X86_REG_DX,
+            UC_X86_REG_EAX,
+            UC_X86_REG_AL,
+            UC_X86_REG_AH,
+            UC_X86_REG_AX,
+        ]
         self.parse()
 
     def get_field_values_str(self, field_values):
@@ -25,10 +36,20 @@ class DependencyGraphVisualization:
         field_string = field_string.rstrip('|')
         return field_string
 
-    def add_state_node(self, node_id, field_initial_values, level=0, readable_name=""):
+    def add_state_node(self, key, t):
+        # Get id of node
+        node_id, readable_name = self.get_node_id(key, t)
+
+        # Get all fields (values of b) for the node
+        field_initial_values = self.graph.get_delta_at_t(key, t)  # Make the node contain all fields (b) already
         fields_values_str = self.get_field_values_str(field_initial_values)
-        #self.g.node(node_id, nohtml("<name>%s|%s" % (readable_name, fields_values_str)))
-        self.subgraph[level].node(node_id, nohtml("<name>%s|%s" % (readable_name, fields_values_str)))
+
+        # Create the node in the graph visualization
+        #half = (0x004a0b00 - 0x004a0a00) / 2
+        #xpos = 0 if type(key) is X86ConstEnum else (key - 0x004a0a00 - half)
+        xpos = 0
+        self.subgraph[t].node(node_id, nohtml("<name>%s|%s" % (readable_name, fields_values_str)), pos="%d,%d!" % (xpos, -t*8))
+        #self.subgraph[t].node(node_id, nohtml("<name>%s|%s" % (readable_name, fields_values_str)))
         self.nodes.add(node_id)
         # print("Added node %s:%s" % (node_id, fields_values_str))
 
@@ -42,11 +63,14 @@ class DependencyGraphVisualization:
         return identifier, readable_name
 
     def connect_node(self, key, b, t):
+        # Don't connect from excluded nodes
+        if type(key) is X86ConstEnum and key.value in self.excluded:
+            return
+
         # Add if not yet in graph
         node_id, readable_name = self.get_node_id(key, t)
         if node_id not in self.nodes:
-            field_values = self.graph.get_delta_at_t(key, t)  # Make the node contain all fields (b) already
-            self.add_state_node(node_id, field_values, level=t, readable_name=readable_name)
+            self.add_state_node(key, t)
 
         # Connect node to its previous (changed) state
         """
@@ -58,6 +82,8 @@ class DependencyGraphVisualization:
         result = self.graph.find_last_changed_t_since_all(key, b, t)
         for r in result:
             prev_key, prev_b, prev_t = r
+            if type(prev_key) is X86ConstEnum and prev_key.value in self.excluded:  # Don't connect to excluded nodes
+                continue
             prev_node_id, _ = self.get_node_id(prev_key, prev_t)
             self.g.edge("%s:%d" % (prev_node_id, prev_b), "%s:%d" % (node_id, b))
 

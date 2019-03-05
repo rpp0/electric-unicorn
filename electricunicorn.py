@@ -239,7 +239,7 @@ class ElectricUnicorn:
         clean_state.write_symbol('buffer', buffer)
         clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
-        for b in range(0, 128*8):
+        for b in range(0, 4*8):
             print("Bit: %d" % b)
             for t in range(1, 40):
                 ref_state = clean_state.copy()
