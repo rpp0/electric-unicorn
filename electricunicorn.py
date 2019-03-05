@@ -11,42 +11,15 @@ import argparse
 import random
 import struct
 import binascii
+import pickle
 from datetime import datetime
 from electricunicorn import trace_register_hws, emulate
 from unicorn.x86_const import *
 from emcap_online_client import EMCapOnlineClient
-from x86_const_enum import X86ConstEnum
+from dependencygraph import DependencyGraph
 from collections import namedtuple
 
 #MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
-
-
-class DependencyGraph:
-    def __init__(self, name=None, contains_registers=False):
-        self._graph = {}
-        self.name = name
-        self.contains_registers = contains_registers
-
-    def update(self, key, t, value):
-        if key in self._graph:
-            self._graph[key].append((t, value))
-        else:
-            self._graph[key] = [(t, value)]
-
-    def _deps_to_str(self, deps_list):
-        result = ""
-        for dep in deps_list:
-            result += "(t=%d,v=%d) -> " % dep
-        return result
-
-    def __repr__(self):
-        result = "" if self.name is None else ("%s\n" % self.name)
-        for key, deps in self._graph.items():
-            if self.contains_registers:
-                result += "%s: %s\n" % (X86ConstEnum(key).name, self._deps_to_str(deps))
-            else:
-                result += "0x%08x: %s\n" % (key, self._deps_to_str(deps))
-        return result
 
 
 class X64EmulationState:
@@ -82,19 +55,36 @@ class X64EmulationState:
         new.elf = self.elf
         return new
 
-    def diff(self, previous_state, t, memory_graph, register_graph):
+    def diff(self, previous_state, b, t, dependency_graph):
         if len(previous_state.memory) != len(self.memory):
             raise EUException("Cannot diff memories of different sizes")
         if len(previous_state.registers) != len(self.registers):
             raise EUException("Cannot diff registers of different sizes")
 
+        """
         for i in range(len(self.memory)):
             if previous_state.memory[i] != self.memory[i]:
-                memory_graph.update(i, t, self.memory[i])
+                dependency_graph.update(i, b, t, self.memory[i])
 
         for i in range(len(self.registers)):
             if previous_state.registers[i] != self.registers[i]:
-                register_graph.update(i, t, self.registers[i])
+                dependency_graph.update(i, b, t, self.registers[i], is_register=True)
+        """
+        # Vectorized approach (faster)
+        ind_mem = np.arange(len(self.memory))
+        diff_mem = (self.memory - previous_state.memory) != 0
+        select_mem = self.memory[diff_mem]
+        select_ind = ind_mem[diff_mem]
+        for i in range(len(select_mem)):
+            dependency_graph.update(select_ind[i], b, t, select_mem[i])
+
+        # TODO dup code
+        ind_reg = np.arange(len(self.registers))
+        diff_reg = (self.registers - previous_state.registers) != 0
+        select_reg = self.registers[diff_reg]
+        select_ind = ind_reg[diff_reg]
+        for i in range(len(select_reg)):
+            dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True)
 
     def __repr__(self):
         result = "Memory:\n"
@@ -223,35 +213,7 @@ class ElectricUnicorn:
         return results
 
     def hmac_sha1_keydep(self):
-        memory_deps = DependencyGraph(name="Memory", contains_registers=False)
-        register_deps = DependencyGraph(name="Registers", contains_registers=True)
-
-        pmk = b"\x00" * 32
-        data = b"\x00" * 72
-
-        clean_state = X64EmulationState(self.elf)
-        clean_state.write_symbol('fake_pmk', pmk)
-        clean_state.write_symbol('data', data)
-        clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
-
-        for i in range(0, 1):
-            for t in range(0, 10):
-                ref_state = clean_state.copy()
-                if t > 1:
-                    emulate(ref_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t-1)
-
-                current_state = clean_state.copy()
-                current_state.write_symbol('fake_pmk', binascii.unhexlify("%064x" % (1 << i)))
-                emulate(current_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
-
-                # Diff here and store result in key_bit_list[t][i]
-                current_state.diff(ref_state, t, memory_deps, register_deps)
-
-                # Do the same for data
-
-        # Print dependencies
-        print(memory_deps)
-        print(register_deps)
+        raise NotImplementedError
 
     def memcpy(self, data, buffer):
         local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
@@ -265,7 +227,37 @@ class ElectricUnicorn:
         return results
 
     def memcpy_keydep(self):
-        raise NotImplementedError
+        dependency_graph = DependencyGraph(name="Dependency graph")
+
+        #pmk = b"\x00" * 32
+        #data = b"\x00" * 72
+        data = b"\x00" * 128
+        buffer = b"\x00" * 128
+
+        clean_state = X64EmulationState(self.elf)
+        clean_state.write_symbol('data', data)
+        clean_state.write_symbol('buffer', buffer)
+        clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
+
+        for b in range(0, 128*8):
+            print("Bit: %d" % b)
+            for t in range(1, 40):
+                ref_state = clean_state.copy()
+                emulate(ref_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
+
+                current_state = clean_state.copy()
+                current_state.write_symbol('data', binascii.unhexlify("%0256x" % (1 << b)))
+                emulate(current_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
+
+                # Diff here and store result in dependency_graph
+                current_state.diff(ref_state, b, t, dependency_graph)
+
+                # Do the same for data
+
+        # Print dependencies
+        print(dependency_graph)
+
+        pickle.dump(dependency_graph, open('/tmp/dependency_graph.p', 'wb'))
 
 
 if __name__ == "__main__":
