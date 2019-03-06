@@ -30,9 +30,7 @@ def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):
     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory
     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers
 
-    n_instructions = run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
+    run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
 
-    print("Entrypoint before: %d" % state.ip.value)
     if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it
         state.ip.value = state.registers[UC_X86_REG_RIP]
-    print("Entrypoint after: %d" % state.ip.value)

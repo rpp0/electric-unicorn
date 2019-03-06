@@ -20,6 +20,10 @@ from dependencygraph import DependencyGraph
 from collections import namedtuple
 
 #MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
+MEMCPY_NUM_INSTRUCTIONS = 39
+MEMCPY_NUM_BITFLIPS = int(256 / 8)
+HMACSHA1_NUM_INSTRUCTIONS = 44344
+HMACSHA1_NUM_BITFLIPS = 32
 
 
 class Ref:
@@ -220,9 +224,6 @@ class ElectricUnicorn:
 
         return results
 
-    def hmac_sha1_keydep(self):
-        raise NotImplementedError
-
     def memcpy(self, data, buffer):
         local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
         write_memory(local_memory, self.elf.get_symbol_address('data'), data)
@@ -234,33 +235,43 @@ class ElectricUnicorn:
 
         return results
 
+    def hmac_sha1_keydep(self):
+        self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS, HMACSHA1_NUM_BITFLIPS)
+
     def memcpy_keydep(self):
+        self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS, MEMCPY_NUM_BITFLIPS)
+
+    def generic_keydep(self, key_symbol_name, key_length, plaintext_symbol_name, plaintext_length, num_instructions, num_bitflips):
         dependency_graph = DependencyGraph(name="Dependency graph")
 
-        #pmk = b"\x00" * 32
-        #data = b"\x00" * 72
-        data = b"\x00" * 128
-        buffer = b"\x00" * 128
+        key = b"\x00" * key_length
+        plaintext = b"\x00" * plaintext_length
 
         clean_state = X64EmulationState(self.elf)
-        clean_state.write_symbol('data', data)
-        clean_state.write_symbol('buffer', buffer)
+        clean_state.write_symbol(key_symbol_name, key)
+        clean_state.write_symbol(plaintext_symbol_name, plaintext)
         clean_state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
-        for b in range(0, 4*8):
-            print("Bit: %d" % b)
-            for t in range(1, 40):
-                ref_state = clean_state.copy()
-                emulate(ref_state, self.elf.get_symbol_address('stop'), t)
+        for b in range(0, num_bitflips):
+            # Create reference state: this state will contain a key with all bits zero during the execution
+            ref_state = clean_state.copy()
 
-                current_state = clean_state.copy()
-                current_state.write_symbol('data', binascii.unhexlify("%0256x" % (1 << b)))
-                emulate(current_state, self.elf.get_symbol_address('stop'), t)
+            # Create current state: this state will contain flipped key bits during the execution
+            current_state = clean_state.copy()
+            current_state.write_symbol(key_symbol_name, binascii.unhexlify(("%0" + str(key_length*2) + "x") % (1 << b)))
 
-                # Diff here and store result in dependency_graph
+            # Emulate for num_instructions steps
+            for t in range(1, num_instructions+1):
+                if t % 10 == 0:
+                    print("\rBitflipped index: %d, t: %d                  " % (b, t), end='')
+                # Progress reference and current state with 1 step
+                emulate(ref_state, self.elf.get_symbol_address('stop'), 1)
+                emulate(current_state, self.elf.get_symbol_address('stop'), 1)
+
+                # Diff states and store result in dependency_graph for time t
                 current_state.diff(ref_state, b, t, dependency_graph)
 
-                # Do the same for data
+            # Do the same for data
 
         # Print dependencies
         print(dependency_graph)

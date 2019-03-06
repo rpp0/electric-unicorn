@@ -8,8 +8,9 @@ from unicorn.x86_const import *
 
 
 class DependencyGraphVisualization:
-    def __init__(self, graph):
-        self.g = Digraph('g', filename='tree.gv', engine='dot', node_attr={'shape': 'record', 'height': '.1'}, graph_attr={'splines': 'line'})
+    def __init__(self, graph, lines=True):
+        splines = 'line' if lines else 'true'
+        self.g = Digraph('g', filename='tree.gv', engine='dot', node_attr={'shape': 'record', 'height': '.1'}, graph_attr={'splines': splines})
         self.subgraph = {}
         for t in range(graph.find_max_t()+1):
             self.subgraph[t] = Digraph("subgraph%d" % t, node_attr={'shape': 'record', 'height': '.1'})
@@ -88,7 +89,9 @@ class DependencyGraphVisualization:
             self.g.edge("%s:%d" % (prev_node_id, prev_b), "%s:%d" % (node_id, b))
 
     def parse(self):
-        for key in self.graph:
+        num_keys = len(self.graph._graph.keys())
+        for i, key in enumerate(self.graph):
+            print("\rParsing %d/%d              " % (i, num_keys), end='')
             for b in self.graph[key]:
                 for t in self.graph[key][b]:
                     self.connect_node(key, b, t)
@@ -104,7 +107,7 @@ if __name__ == "__main__":
         dependency_graph = pickle.load(f)
     print(dependency_graph)
 
-    d = DependencyGraphVisualization(dependency_graph)
+    d = DependencyGraphVisualization(dependency_graph, lines=True)
     d.show()
 
     #g.node('node0', nohtml('<f0> |<f1> G|<f2>'))
