@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np
+from unicorn.x86_const import UC_X86_REG_RIP
 
 cdef extern from "inttypes.h":
     ctypedef unsigned long uint64_t
@@ -23,10 +24,15 @@ def trace_register_hws(memory, entrypoint, sp, stop_addr):
 
     return results
 
-def emulate(state, entrypoint, stop_addr, max_instructions):
+def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):
     memory_size = len(state.memory)
     registers_size = len(state.registers)
     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory
     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers
 
-    n_instructions = run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, entrypoint, stop_addr, max_instructions)
+    n_instructions = run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
+
+    print("Entrypoint before: %d" % state.ip.value)
+    if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it
+        state.ip.value = state.registers[UC_X86_REG_RIP]
+    print("Entrypoint after: %d" % state.ip.value)

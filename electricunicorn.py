@@ -22,16 +22,23 @@ from collections import namedtuple
 #MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
 
 
+class Ref:
+    def __init__(self, x):
+        self.value = x
+
+
 class X64EmulationState:
     def __init__(self, elf=None):
         if elf is not None:
             self.memory = np.array(elf.memory, dtype=np.uint8)
             self.registers = np.zeros(UC_X86_REG_ENDING-1, dtype=np.uint64)  # Do not include UC_X86_REG_ENDING -- weird stuff will happen
             self.elf = elf
+            self.ip = Ref(self.elf.meta.entrypoint)
         else:
             self.memory = None
             self.registers = None
             self.elf = None
+            self.ip = None
 
     def write_symbol(self, symbol_name, data: bytes):
         self.write_memory(self.elf.get_symbol_address(symbol_name), data)
@@ -53,6 +60,7 @@ class X64EmulationState:
         new.memory = np.copy(self.memory)
         new.registers = np.copy(self.registers)
         new.elf = self.elf
+        new.ip = Ref(self.ip.value)
         return new
 
     def diff(self, previous_state, b, t, dependency_graph):
@@ -243,11 +251,11 @@ class ElectricUnicorn:
             print("Bit: %d" % b)
             for t in range(1, 40):
                 ref_state = clean_state.copy()
-                emulate(ref_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
+                emulate(ref_state, self.elf.get_symbol_address('stop'), t)
 
                 current_state = clean_state.copy()
                 current_state.write_symbol('data', binascii.unhexlify("%0256x" % (1 << b)))
-                emulate(current_state, self.elf.meta.entrypoint, self.elf.get_symbol_address('stop'), t)
+                emulate(current_state, self.elf.get_symbol_address('stop'), t)
 
                 # Diff here and store result in dependency_graph
                 current_state.diff(ref_state, b, t, dependency_graph)
