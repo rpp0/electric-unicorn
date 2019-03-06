@@ -15,7 +15,6 @@ import pickle
 from datetime import datetime
 from electricunicorn import trace_register_hws, emulate
 from unicorn.x86_const import *
-from emcap_online_client import EMCapOnlineClient
 from dependencygraph import DependencyGraph
 from collections import namedtuple
 
@@ -271,6 +270,9 @@ class ElectricUnicorn:
                 # Diff states and store result in dependency_graph for time t
                 current_state.diff(ref_state, b, t, dependency_graph)
 
+            del ref_state
+            del current_state
+
             # Do the same for data
 
         # Print dependencies
@@ -299,6 +301,7 @@ if __name__ == "__main__":
     e = ElectricUnicorn(args.elf_path, dataset_path=args.dataset_path)
     client = None
     if args.online_ip is not None:
+        from emcap_online_client import EMCapOnlineClient
         client = EMCapOnlineClient()
         client.connect(args.online_ip)
 
