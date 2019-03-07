@@ -22,7 +22,7 @@ from collections import namedtuple
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
 HMACSHA1_NUM_INSTRUCTIONS = 44344
-HMACSHA1_NUM_BITFLIPS = 32
+HMACSHA1_NUM_BITFLIPS = 1
 
 
 class Ref:
@@ -241,7 +241,7 @@ class ElectricUnicorn:
         self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS, MEMCPY_NUM_BITFLIPS)
 
     def generic_keydep(self, key_symbol_name, key_length, plaintext_symbol_name, plaintext_length, num_instructions, num_bitflips):
-        dependency_graph = DependencyGraph(name="Dependency graph")
+        key_dependency_graph = DependencyGraph(name="Dependency graph")
 
         key = b"\x00" * key_length
         plaintext = b"\x00" * plaintext_length
@@ -255,30 +255,30 @@ class ElectricUnicorn:
             # Create reference state: this state will contain a key with all bits zero during the execution
             ref_state = clean_state.copy()
 
-            # Create current state: this state will contain flipped key bits during the execution
-            current_state = clean_state.copy()
-            current_state.write_symbol(key_symbol_name, binascii.unhexlify(("%0" + str(key_length*2) + "x") % (1 << b)))
+            # Create current key state: this state will contain flipped key bits during the execution
+            current_key_state = clean_state.copy()
+            current_key_state.write_symbol(key_symbol_name, binascii.unhexlify(("%0" + str(key_length*2) + "x") % (1 << b)))
+
+            # Create current plaintext state: this state will contain flipped plaintext bits during the execution
+            current_plaintext_state = clean_state.copy()
+            current_plaintext_state.write_symbol(plaintext_symbol_name, binascii.unhexlify(("%0" + str(plaintext_length*2) + "x") % (1 << b)))
 
             # Emulate for num_instructions steps
             for t in range(1, num_instructions+1):
                 if t % 10 == 0:
                     print("\rBitflipped index: %d, t: %d                  " % (b, t), end='')
-                # Progress reference and current state with 1 step
+                # Progress reference and current states with 1 step
                 emulate(ref_state, self.elf.get_symbol_address('stop'), 1)
-                emulate(current_state, self.elf.get_symbol_address('stop'), 1)
+                emulate(current_key_state, self.elf.get_symbol_address('stop'), 1)
+                # Do the same for data
 
                 # Diff states and store result in dependency_graph for time t
-                current_state.diff(ref_state, b, t, dependency_graph)
-
-            del ref_state
-            del current_state
-
-            # Do the same for data
+                current_key_state.diff(ref_state, b, t, key_dependency_graph)
 
         # Print dependencies
-        print(dependency_graph)
+        print(key_dependency_graph)
 
-        pickle.dump(dependency_graph, open('/tmp/dependency_graph.p', 'wb'))
+        pickle.dump(key_dependency_graph, open('/tmp/dependency_graph.p', 'wb'))
 
 
 if __name__ == "__main__":
