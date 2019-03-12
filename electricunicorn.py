@@ -21,8 +21,9 @@ from collections import namedtuple
 #MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
-HMACSHA1_NUM_INSTRUCTIONS = 44344
-HMACSHA1_NUM_BITFLIPS = 8
+#HMACSHA1_NUM_INSTRUCTIONS = 44344
+HMACSHA1_NUM_INSTRUCTIONS = 2000
+HMACSHA1_NUM_BITFLIPS = 1
 
 
 class Ref:

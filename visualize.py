@@ -8,7 +8,7 @@ from unicorn.x86_const import *
 
 
 class DependencyGraphVisualization:
-    def __init__(self, graph, lines=True):
+    def __init__(self, graph, lines=True, exclude_partial_registers=True):
         splines = 'line' if lines else 'true'
         self.g = Digraph('g', filename='tree.gv', engine='dot', node_attr={'shape': 'record', 'height': '.1'}, graph_attr={'splines': splines})
         self.subgraph = {}
@@ -17,57 +17,60 @@ class DependencyGraphVisualization:
             self.subgraph[t].graph_attr.update(rank='same')
         self.nodes = set()
         self.graph = graph
-        self.excluded = sorted([  # TODO sometimes only write to _AX happens for example. How to fix?
-            UC_X86_REG_EDX,
-            UC_X86_REG_DL,
-            UC_X86_REG_DH,
-            UC_X86_REG_DX,
-            UC_X86_REG_EAX,
-            UC_X86_REG_AL,
-            UC_X86_REG_AH,
-            UC_X86_REG_AX,
-            UC_X86_REG_EBX,
-            UC_X86_REG_BL,
-            UC_X86_REG_BH,
-            UC_X86_REG_BX,
-            UC_X86_REG_ECX,
-            UC_X86_REG_CL,
-            UC_X86_REG_CH,
-            UC_X86_REG_CX,
-            UC_X86_REG_EDI,
-            UC_X86_REG_DI,
-            UC_X86_REG_DIL,
-            UC_X86_REG_ESI,
-            UC_X86_REG_SI,
-            UC_X86_REG_SIL,
-            UC_X86_REG_EBP,
-            UC_X86_REG_BP,
-            UC_X86_REG_BPL,
-            UC_X86_REG_R15W,
-            UC_X86_REG_R15D,
-            UC_X86_REG_R15B,
-            UC_X86_REG_R14W,
-            UC_X86_REG_R14D,
-            UC_X86_REG_R14B,
-            UC_X86_REG_R13W,
-            UC_X86_REG_R13D,
-            UC_X86_REG_R13B,
-            UC_X86_REG_R12W,
-            UC_X86_REG_R12D,
-            UC_X86_REG_R12B,
-            UC_X86_REG_R11W,
-            UC_X86_REG_R11D,
-            UC_X86_REG_R11B,
-            UC_X86_REG_R10W,
-            UC_X86_REG_R10D,
-            UC_X86_REG_R10B,
-            UC_X86_REG_R9W,
-            UC_X86_REG_R9D,
-            UC_X86_REG_R9B,
-            UC_X86_REG_R8W,
-            UC_X86_REG_R8D,
-            UC_X86_REG_R8B,
-        ])
+        if exclude_partial_registers:
+            self.excluded = sorted([  # TODO sometimes only write to _AX happens for example. How to fix?
+                UC_X86_REG_EDX,
+                UC_X86_REG_DL,
+                UC_X86_REG_DH,
+                UC_X86_REG_DX,
+                UC_X86_REG_EAX,
+                UC_X86_REG_AL,
+                UC_X86_REG_AH,
+                UC_X86_REG_AX,
+                UC_X86_REG_EBX,
+                UC_X86_REG_BL,
+                UC_X86_REG_BH,
+                UC_X86_REG_BX,
+                UC_X86_REG_ECX,
+                UC_X86_REG_CL,
+                UC_X86_REG_CH,
+                UC_X86_REG_CX,
+                UC_X86_REG_EDI,
+                UC_X86_REG_DI,
+                UC_X86_REG_DIL,
+                UC_X86_REG_ESI,
+                UC_X86_REG_SI,
+                UC_X86_REG_SIL,
+                UC_X86_REG_EBP,
+                UC_X86_REG_BP,
+                UC_X86_REG_BPL,
+                UC_X86_REG_R15W,
+                UC_X86_REG_R15D,
+                UC_X86_REG_R15B,
+                UC_X86_REG_R14W,
+                UC_X86_REG_R14D,
+                UC_X86_REG_R14B,
+                UC_X86_REG_R13W,
+                UC_X86_REG_R13D,
+                UC_X86_REG_R13B,
+                UC_X86_REG_R12W,
+                UC_X86_REG_R12D,
+                UC_X86_REG_R12B,
+                UC_X86_REG_R11W,
+                UC_X86_REG_R11D,
+                UC_X86_REG_R11B,
+                UC_X86_REG_R10W,
+                UC_X86_REG_R10D,
+                UC_X86_REG_R10B,
+                UC_X86_REG_R9W,
+                UC_X86_REG_R9D,
+                UC_X86_REG_R9B,
+                UC_X86_REG_R8W,
+                UC_X86_REG_R8D,
+                UC_X86_REG_R8B,
+            ])
+        else:
+            self.excluded = []
         self.parse()
 
     def get_field_values_str(self, field_values):
@@ -148,7 +151,7 @@ if __name__ == "__main__":
         dependency_graph = pickle.load(f)
     print(dependency_graph)
 
-    d = DependencyGraphVisualization(dependency_graph, lines=True)
+    d = DependencyGraphVisualization(dependency_graph, lines=True, exclude_partial_registers=False)
     d.show()
 
     #g.node('node0', nohtml('<f0> |<f1> G|<f2>'))
