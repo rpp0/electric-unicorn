@@ -15,14 +15,13 @@ import pickle
 from datetime import datetime
 from electricunicorn import trace_register_hws, emulate
 from unicorn.x86_const import *
-from dependencygraph import DependencyGraph
-from collections import namedtuple
+from dependencygraph import DependencyGraph, DependencyGraphKey
 
 #MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
 #HMACSHA1_NUM_INSTRUCTIONS = 44344
-HMACSHA1_NUM_INSTRUCTIONS = 2000
+HMACSHA1_NUM_INSTRUCTIONS = 6000
 HMACSHA1_NUM_BITFLIPS = 1
 
 
@@ -242,7 +241,8 @@ class ElectricUnicorn:
         self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS, MEMCPY_NUM_BITFLIPS)
 
     def generic_keydep(self, key_symbol_name, key_length, plaintext_symbol_name, plaintext_length, num_instructions, num_bitflips):
-        key_dependency_graph = DependencyGraph(name="Dependency graph")
+        key_dependency_graph = DependencyGraph(DependencyGraphKey.KEY, name="Key dependency graph")
+        plaintext_dependency_graph = DependencyGraph(DependencyGraphKey.PLAINTEXT, name="Plaintext dependency graph")
 
         key = b"\x00" * key_length
         plaintext = b"\x00" * plaintext_length
@@ -271,15 +271,18 @@ class ElectricUnicorn:
                 # Progress reference and current states with 1 step
                 emulate(ref_state, self.elf.get_symbol_address('stop'), 1)
                 emulate(current_key_state, self.elf.get_symbol_address('stop'), 1)
-                # Do the same for data
+                emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), 1)
 
                 # Diff states and store result in dependency_graph for time t
                 current_key_state.diff(ref_state, b, t, key_dependency_graph)
+                current_plaintext_state.diff(ref_state, b, t, plaintext_dependency_graph)
 
         # Print dependencies
         print(key_dependency_graph)
+        print(plaintext_dependency_graph)
 
-        pickle.dump(key_dependency_graph, open('/tmp/dependency_graph.p', 'wb'))
+        pickle.dump(key_dependency_graph, open('/tmp/key_dependency_graph.p', 'wb'))
+        pickle.dump(plaintext_dependency_graph, open('/tmp/plaintext_dependency_graph.p', 'wb'))
 
 
 if __name__ == "__main__":
