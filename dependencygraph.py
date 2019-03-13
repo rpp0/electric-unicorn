@@ -52,17 +52,17 @@ class DependencyGraph:
             if b in self._graph[key]:
                 if skip_dup:
                     prev_t = self._prev_t[key][b]
-                    if prev_t is not None and self._graph[key][b][prev_t] != value:
+                    if self._graph[key][b][prev_t] != value:
                         self._graph[key][b][t] = value
                         self._prev_t[key][b] = t
                 else:
                     self._graph[key][b][t] = value
             else:
                 self._graph[key][b] = {t: value}
-                self._prev_t[key][b] = None
+                self._prev_t[key][b] = t
         else:
             self._graph[key] = {b: {t: value}}
-            self._prev_t[key] = {b: None}
+            self._prev_t[key] = {b: t}
 
     def get_graph_key(self, node_id):
         return self._graph_key[node_id]
@@ -70,10 +70,10 @@ class DependencyGraph:
     def _delta_to_str(self, delta_dict):
         result = ""
         for t, v in delta_dict.items():
-            if type(v) is int:
-                result += "(t=%d,v=%s) " % (t, hex(v))
-            else:
+            if type(v) is str:
                 result += "(t=%d,v=%s) " % (t, v)
+            else:
+                result += "(t=%d,v=%s) " % (t, hex(v))
         return result
 
     def __repr__(self):

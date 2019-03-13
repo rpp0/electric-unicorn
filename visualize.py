@@ -151,11 +151,11 @@ if __name__ == "__main__":
     union_graph = DependencyGraph.from_union(key_dependency_graph, plaintext_dependency_graph)
     print(union_graph)
 
-    d = DependencyGraphVisualization(union_graph, lines=True, exclude_partial_registers=False)
-    d.show()
-
-    #d = DependencyGraphVisualization(key_dependency_graph, lines=True, exclude_partial_registers=False)
+    #d = DependencyGraphVisualization(union_graph, lines=True, exclude_partial_registers=False)
     #d.show()
+
+    d = DependencyGraphVisualization(key_dependency_graph, lines=True, exclude_partial_registers=False)
+    d.show()
 
     #d = DependencyGraphVisualization(plaintext_dependency_graph, lines=True, exclude_partial_registers=False)
     #d.show()

@@ -20,8 +20,8 @@ from dependencygraph import DependencyGraph, DependencyGraphKey
 #MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
-#HMACSHA1_NUM_INSTRUCTIONS = 44344
-HMACSHA1_NUM_INSTRUCTIONS = 6000
+HMACSHA1_NUM_INSTRUCTIONS = 44344
+#HMACSHA1_NUM_INSTRUCTIONS = 6000
 HMACSHA1_NUM_BITFLIPS = 1
 
 
@@ -271,11 +271,11 @@ class ElectricUnicorn:
                 # Progress reference and current states with 1 step
                 emulate(ref_state, self.elf.get_symbol_address('stop'), 1)
                 emulate(current_key_state, self.elf.get_symbol_address('stop'), 1)
-                emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), 1)
+                #emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), 1)
 
                 # Diff states and store result in dependency_graph for time t
                 current_key_state.diff(ref_state, b, t, key_dependency_graph)
-                current_plaintext_state.diff(ref_state, b, t, plaintext_dependency_graph)
+                #current_plaintext_state.diff(ref_state, b, t, plaintext_dependency_graph)
 
         # Print dependencies
         print(key_dependency_graph)
@@ -292,7 +292,8 @@ if __name__ == "__main__":
     arg_parser.add_argument('dataset_path', nargs='?', type=str, default=None, help='Path to store the simulated traces in.')
     arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
-    arg_parser.add_argument('--keydep', default=False, action='store_true', help='Create key dependency graph')
+    arg_parser.add_argument('--keydep', default=False, action='store_true', help='Create key dependency graph.')
+    arg_parser.add_argument('--key', type=str, default=None, help='Hex stream fixed key to use.')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
@@ -315,7 +316,10 @@ if __name__ == "__main__":
         results = None
         if args.elf_type == 'hmac-sha1':
             if not args.keydep:
-                pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
+                if not args.key:
+                    pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
+                else:
+                    pmk = binascii.unhexlify(args.key)
                 data = b"\x00" * 76
                 results = e.hmac_sha1(pmk=pmk, data=data)
             else:
