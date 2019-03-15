@@ -8,117 +8,23 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
-import random
-import struct
 import binascii
 import pickle
 from datetime import datetime
 from electricunicorn import trace_register_hws, emulate
 from unicorn.x86_const import *
 from dependencygraph import DependencyGraph, DependencyGraphKey
+from inputs import InputMeta
+from mutinf import MutInfAnalysis
+from util import EUException, random_hamming, random_uniform, print_numpy_as_hex
+from emulationstate import X64EmulationState
 
-#MemoryDiff = namedtuple("MemoryDiff", ["address", "before", "after"])
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
 HMACSHA1_NUM_INSTRUCTIONS = 44344
 #HMACSHA1_NUM_INSTRUCTIONS = 6000
+#HMACSHA1_NUM_INSTRUCTIONS = 500
 HMACSHA1_NUM_BITFLIPS = 1
-
-
-class Ref:
-    def __init__(self, x):
-        self.value = x
-
-
-class X64EmulationState:
-    def __init__(self, elf=None):
-        if elf is not None:
-            self.memory = np.array(elf.memory, dtype=np.uint8)
-            self.registers = np.zeros(UC_X86_REG_ENDING-1, dtype=np.uint64)  # Do not include UC_X86_REG_ENDING -- weird stuff will happen
-            self.elf = elf
-            self.ip = Ref(self.elf.meta.entrypoint)
-        else:
-            self.memory = None
-            self.registers = None
-            self.elf = None
-            self.ip = None
-
-    def write_symbol(self, symbol_name, data: bytes):
-        self.write_memory(self.elf.get_symbol_address(symbol_name), data)
-
-    def read_memory(self, address, length):
-        return self.memory[address:address + length]
-
-    def write_memory(self, address, data: bytes):
-        self.memory[address:address+len(data)] = bytearray(data)
-
-    def read_register(self, register):
-        return self.registers[register]
-
-    def write_register(self, register, value):
-        self.registers[register] = value
-
-    def copy(self):
-        new = X64EmulationState()
-        new.memory = np.copy(self.memory)
-        new.registers = np.copy(self.registers)
-        new.elf = self.elf
-        new.ip = Ref(self.ip.value)
-        return new
-
-    def diff(self, previous_state, b, t, dependency_graph):
-        if len(previous_state.memory) != len(self.memory):
-            raise EUException("Cannot diff memories of different sizes")
-        if len(previous_state.registers) != len(self.registers):
-            raise EUException("Cannot diff registers of different sizes")
-
-        """
-        for i in range(len(self.memory)):
-            if previous_state.memory[i] != self.memory[i]:
-                dependency_graph.update(i, b, t, self.memory[i])
-
-        for i in range(len(self.registers)):
-            if previous_state.registers[i] != self.registers[i]:
-                dependency_graph.update(i, b, t, self.registers[i], is_register=True)
-        """
-        # Vectorized approach (faster)
-        ind_mem = np.arange(len(self.memory))
-        diff_mem = (self.memory - previous_state.memory) != 0
-        select_mem = self.memory[diff_mem]
-        select_ind = ind_mem[diff_mem]
-        for i in range(len(select_mem)):
-            dependency_graph.update(select_ind[i], b, t, select_mem[i])
-
-        # TODO dup code
-        ind_reg = np.arange(len(self.registers))
-        diff_reg = (self.registers - previous_state.registers) != 0
-        select_reg = self.registers[diff_reg]
-        select_ind = ind_reg[diff_reg]
-        for i in range(len(select_reg)):
-            dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True)
-
-    def __repr__(self):
-        result = "Memory:\n"
-        result += str(self.memory)
-        result += "\nRegisters:\n"
-        result += str(self.registers)
-        return result
-
-
-def print_numpy_as_hex(np_array: np.ndarray, label: str=None):
-    if label is not None:
-        print(label + ": ")
-
-    cnt = 0
-    for elem in np_array.flat:
-        cnt += 1
-        print("%02x " % elem, end='')
-
-        if cnt == 16:
-            cnt = 0
-            print('')
-    if cnt != 0:
-        print('')
 
 
 def read_memory(memory: np.ndarray, address, length):
@@ -127,40 +33,6 @@ def read_memory(memory: np.ndarray, address, length):
 
 def write_memory(memory: np.ndarray, address, data: bytes):
     memory[address:address+len(data)] = bytearray(data)
-
-
-def random_uniform(length):
-    with open("/dev/urandom", "rb") as f:
-        return f.read(length)
-
-
-def random_hamming(length, subkey_size):
-    if subkey_size == 1:
-        format = "B"
-    elif subkey_size == 2:
-        format = "h"
-    elif subkey_size == 4:
-        format = "I"
-    else:
-        raise ValueError("Invalid subkey size")
-
-    num_bits = subkey_size * 8
-
-    result = b""
-    for i in range(0, length, subkey_size):
-        num_ones = random.randint(0, num_bits)
-        num_zeros = num_bits - num_ones
-        integer_str = (num_ones * "1") + (num_zeros * "0")
-        shuffled_str = ''.join(random.sample(integer_str, num_bits))
-        shuffled_int = int(shuffled_str, 2)
-        result += struct.pack(format, shuffled_int)
-
-    assert(len(result) == length)
-    return result
-
-
-class EUException(Exception):
-    pass
 
 
 class Elf:
@@ -234,13 +106,13 @@ class ElectricUnicorn:
 
         return results
 
-    def hmac_sha1_keydep(self):
-        self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS, HMACSHA1_NUM_BITFLIPS)
+    def hmac_sha1_keydep(self, skip):
+        self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS - skip, HMACSHA1_NUM_BITFLIPS, skip=skip)
 
-    def memcpy_keydep(self):
-        self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS, MEMCPY_NUM_BITFLIPS)
+    def memcpy_keydep(self, skip):
+        self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS - skip, MEMCPY_NUM_BITFLIPS, skip=skip)
 
-    def generic_keydep(self, key_symbol_name, key_length, plaintext_symbol_name, plaintext_length, num_instructions, num_bitflips):
+    def generic_keydep(self, key_symbol_name, key_length, plaintext_symbol_name, plaintext_length, num_instructions, num_bitflips, skip=0):
         key_dependency_graph = DependencyGraph(DependencyGraphKey.KEY, name="Key dependency graph")
         plaintext_dependency_graph = DependencyGraph(DependencyGraphKey.PLAINTEXT, name="Plaintext dependency graph")
 
@@ -264,6 +136,12 @@ class ElectricUnicorn:
             current_plaintext_state = clean_state.copy()
             current_plaintext_state.write_symbol(plaintext_symbol_name, binascii.unhexlify(("%0" + str(plaintext_length*2) + "x") % (1 << b)))
 
+            # Run <skip> steps
+            if skip != 0:
+                emulate(ref_state, self.elf.get_symbol_address('stop'), skip)
+                emulate(current_key_state, self.elf.get_symbol_address('stop'), skip)
+                emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), skip)
+
             # Emulate for num_instructions steps
             for t in range(1, num_instructions+1):
                 if t % 10 == 0:
@@ -271,11 +149,11 @@ class ElectricUnicorn:
                 # Progress reference and current states with 1 step
                 emulate(ref_state, self.elf.get_symbol_address('stop'), 1)
                 emulate(current_key_state, self.elf.get_symbol_address('stop'), 1)
-                #emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), 1)
+                emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), 1)
 
                 # Diff states and store result in dependency_graph for time t
                 current_key_state.diff(ref_state, b, t, key_dependency_graph)
-                #current_plaintext_state.diff(ref_state, b, t, plaintext_dependency_graph)
+                current_plaintext_state.diff(ref_state, b, t, plaintext_dependency_graph)
 
         # Print dependencies
         print(key_dependency_graph)
@@ -283,6 +161,18 @@ class ElectricUnicorn:
 
         pickle.dump(key_dependency_graph, open('/tmp/key_dependency_graph.p', 'wb'))
         pickle.dump(plaintext_dependency_graph, open('/tmp/plaintext_dependency_graph.p', 'wb'))
+
+    def mutual_information_analysis(self, args):
+        if args.elf_type == 'memcpy':
+            key_meta = InputMeta("data", 128)
+            plaintext_meta = InputMeta("buffer", 128)
+            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, MEMCPY_NUM_INSTRUCTIONS)
+            m.show()
+        elif args.elf_type == 'hmac-sha1':
+            key_meta = InputMeta("fake_pmk", 32)
+            plaintext_meta = InputMeta("data", 72)
+            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS)
+            m.show()
 
 
 if __name__ == "__main__":
@@ -294,6 +184,8 @@ if __name__ == "__main__":
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
     arg_parser.add_argument('--keydep', default=False, action='store_true', help='Create key dependency graph.')
     arg_parser.add_argument('--key', type=str, default=None, help='Hex stream fixed key to use.')
+    arg_parser.add_argument('--skip', type=int, default=0, help='Steps to skip in time.')
+    arg_parser.add_argument('--mi', default=False, action='store_true', help='Mutual information analysis.')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
@@ -310,6 +202,10 @@ if __name__ == "__main__":
         client = EMCapOnlineClient()
         client.connect(args.online_ip)
 
+    if args.mi:
+        e.mutual_information_analysis(args)
+        exit(0)
+
     for i in range(0, args.num_traces):
         #pmk = b"\x00\x00" + random_uniform(1) + b"\x00"*29
         #pmk = random_uniform(32)
@@ -323,7 +219,7 @@ if __name__ == "__main__":
                 data = b"\x00" * 76
                 results = e.hmac_sha1(pmk=pmk, data=data)
             else:
-                results = e.hmac_sha1_keydep()
+                results = e.hmac_sha1_keydep(skip=args.skip)
         elif args.elf_type == 'memcpy':
             if not args.keydep:
                 data_to_copy = random_hamming(128, subkey_size=1)
@@ -331,7 +227,7 @@ if __name__ == "__main__":
                 #buffer = random_hamming(128, subkey_size=1)
                 results = e.memcpy(buffer=buffer, data=data_to_copy)
             else:
-                results = e.memcpy_keydep()
+                results = e.memcpy_keydep(skip=args.skip)
 
         if args.keydep:
             print("Done keydep")

@@ -151,7 +151,13 @@ if __name__ == "__main__":
     union_graph = DependencyGraph.from_union(key_dependency_graph, plaintext_dependency_graph)
     print(union_graph)
 
+    intersection_graph = DependencyGraph.from_intersection(key_dependency_graph, plaintext_dependency_graph)
+    print(intersection_graph)
+
     #d = DependencyGraphVisualization(union_graph, lines=True, exclude_partial_registers=False)
+    #d.show()
+
+    #d = DependencyGraphVisualization(intersection_graph, lines=True, exclude_partial_registers=False)
     #d.show()
 
     d = DependencyGraphVisualization(key_dependency_graph, lines=True, exclude_partial_registers=False)

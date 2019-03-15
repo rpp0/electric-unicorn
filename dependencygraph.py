@@ -13,6 +13,7 @@ class DependencyGraph:
     def __init__(self, default_graph_key: DependencyGraphKey, name=None):
         self._graph = {}
         self._prev_t = {}
+        self._last_t = {}
         self.name = name
         self.file_name = name.lower().replace(" ", "_") if name is not None else None
         self.default_graph_key = default_graph_key
@@ -24,6 +25,29 @@ class DependencyGraph:
     def __getitem__(self, key):
         return self._graph[key]
 
+    def has_same_deps(self, other):
+        for key in self._graph:
+            if key not in other:
+                return False
+            for b in self._graph[key]:
+                if b not in other[key]:
+                    return False
+                for t in self._graph[key][b]:
+                    if t not in other[key][b]:
+                        return False
+
+        for key in other:
+            if key not in self._graph:
+                return False
+            for b in other[key]:
+                if b not in self._graph[key]:
+                    return False
+                for t in other[key][b]:
+                    if t not in self._graph[key][b]:
+                        return False
+
+        return True
+
     def get_node_id(self, key, t):
         if type(key) is X86ConstEnum:
             identifier = "%s_%d" % (key.name, t)
@@ -33,8 +57,22 @@ class DependencyGraph:
             readable_name = "%s, t=%d" % (hex(key), t)
         return identifier, readable_name
 
-    def node_exists(self, node_id):
-        return node_id in self._graph_key
+    def node_exists(self, key, b, t):
+        if key in self._graph:
+            if b in self._graph[key]:
+                if t in self._graph[key][b]:
+                    return True
+        return False
+
+    def update_prev(self, key, b, t):
+        last_t = self._last_t[key][b]
+        if key in self._prev_t:
+            if b in self._prev_t[key]:
+                self._prev_t[key][b][t] = last_t
+            else:
+                self._prev_t[key][b] = {t: last_t}
+        else:
+            self._prev_t[key] = {b: {t: last_t}}
 
     def update(self, key, b, t, value, is_register=False, skip_dup=True, graph_key=None):
         # If dealing with register, make Enum to avoid confusion with addresses
@@ -50,19 +88,23 @@ class DependencyGraph:
         # Add node to graph
         if key in self._graph:
             if b in self._graph[key]:
+                last_t = self._last_t[key][b]
+
                 if skip_dup:
-                    prev_t = self._prev_t[key][b]
-                    if self._graph[key][b][prev_t] != value:
+                    if self._graph[key][b][last_t] != value:
                         self._graph[key][b][t] = value
-                        self._prev_t[key][b] = t
+                        self.update_prev(key, b, t)
+                        self._last_t[key][b] = t
                 else:
                     self._graph[key][b][t] = value
+                    self.update_prev(key, b, t)
+                    self._last_t[key][b] = t
             else:
                 self._graph[key][b] = {t: value}
-                self._prev_t[key][b] = t
+                self._last_t[key][b] = t
         else:
             self._graph[key] = {b: {t: value}}
-            self._prev_t[key] = {b: t}
+            self._last_t[key] = {b: t}
 
     def get_graph_key(self, node_id):
         return self._graph_key[node_id]
@@ -95,26 +137,21 @@ class DependencyGraph:
 
         return results
 
-    def find_last_t_since(self, key, b, since):
-        for t in range(since-1, -1, -1):
-            if b in self._graph[key]:
-                if t in self._graph[key][b]:
-                    return t
-        return None
-
     def find_last_changed_t_since_all(self, ref_key, b, since):
         results = []
         max_last_t = 0
-        v = self._graph[ref_key][b][since]
 
         ref_node_id, _ = self.get_node_id(ref_key, since)
         ref_graph_key = self.get_graph_key(ref_node_id)
 
         for key in self._graph:
             # Get last state snapshot for a given key and bit since <since>
-            last_t = self.find_last_t_since(key, b, since)
-            if last_t is None:
-                continue
+            try:
+                last_t = self._last_t[key][b]
+                if last_t >= since:
+                    continue
+            except KeyError:
+                continue  # No previous entry
 
             # Make sure it belongs to the same graph key
             node_id, _ = self.get_node_id(key, last_t)
@@ -153,10 +190,23 @@ class DependencyGraph:
             for b in graph2[key]:
                 for t in graph2[key][b]:
                     is_register = type(key) is X86ConstEnum
-                    node_id, _ = graph2.get_node_id(key, t)
-                    if union_graph.node_exists(node_id):
-                        union_graph.update(int(key), b, t, 'CB', is_register, skip_dup=False, graph_key=DependencyGraphKey.COMBINED)
+                    if union_graph.node_exists(key, b, t):
+                        combvalue = "%s, %s" % (hex(graph1[key][b][t]), hex(graph2[key][b][t]))
+                        union_graph.update(int(key), b, t, combvalue, is_register, skip_dup=False, graph_key=DependencyGraphKey.COMBINED)
                     else:
                         union_graph.update(int(key), b, t, graph2[key][b][t], is_register, skip_dup=False, graph_key=graph2.default_graph_key)
 
         return union_graph
+
+    @classmethod
+    def from_intersection(cls, graph1, graph2):
+        intersection_graph = DependencyGraph(DependencyGraphKey.COMBINED, name="Intersection graph")
+        for key in graph1:
+            for b in graph1[key]:
+                for t in graph1[key][b]:
+                    is_register = type(key) is X86ConstEnum
+                    if graph2.node_exists(key, b, t):
+                        combvalue = "%s, %s" % (hex(graph1[key][b][t]), hex(graph2[key][b][t]))
+                        intersection_graph.update(int(key), b, t, combvalue, is_register, skip_dup=False, graph_key=DependencyGraphKey.COMBINED)
+
+        return intersection_graph
