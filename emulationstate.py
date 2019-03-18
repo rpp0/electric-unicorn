@@ -39,7 +39,7 @@ class X64EmulationState:
         new.ip = Ref(self.ip.value)
         return new
 
-    def diff(self, previous_state, b, t, dependency_graph, registers_only=False):
+    def diff(self, previous_state, b, t, dependency_graph, registers_only=False, skip_dup=True):
         if len(previous_state.memory) != len(self.memory):
             raise EUException("Cannot diff memories of different sizes")
         if len(previous_state.registers) != len(self.registers):
@@ -52,7 +52,7 @@ class X64EmulationState:
             select_mem = self.memory[diff_mem]
             select_ind = ind_mem[diff_mem]
             for i in range(len(select_mem)):
-                dependency_graph.update(select_ind[i], b, t, select_mem[i])
+                dependency_graph.update(select_ind[i], b, t, select_mem[i], skip_dup=skip_dup)
 
         # TODO dup code
         ind_reg = np.arange(len(self.registers))
@@ -60,7 +60,7 @@ class X64EmulationState:
         select_reg = self.registers[diff_reg]
         select_ind = ind_reg[diff_reg]
         for i in range(len(select_reg)):
-            dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True)
+            dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True, skip_dup=skip_dup)
 
     def __repr__(self):
         result = "Memory:\n"

@@ -107,10 +107,10 @@ class ElectricUnicorn:
         return results
 
     def hmac_sha1_keydep(self, skip):
-        self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS - skip, HMACSHA1_NUM_BITFLIPS, skip=skip)
+        self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS, HMACSHA1_NUM_BITFLIPS, skip=skip)
 
     def memcpy_keydep(self, skip):
-        self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS - skip, MEMCPY_NUM_BITFLIPS, skip=skip)
+        self.generic_keydep('data', 128, 'buffer', 128, MEMCPY_NUM_INSTRUCTIONS, MEMCPY_NUM_BITFLIPS, skip=skip)
 
     def generic_keydep(self, key_symbol_name, key_length, plaintext_symbol_name, plaintext_length, num_instructions, num_bitflips, skip=0):
         key_dependency_graph = DependencyGraph(DependencyGraphKey.KEY, name="Key dependency graph")
@@ -143,7 +143,7 @@ class ElectricUnicorn:
                 emulate(current_plaintext_state, self.elf.get_symbol_address('stop'), skip)
 
             # Emulate for num_instructions steps
-            for t in range(1, num_instructions+1):
+            for t in range(1, num_instructions+1-skip):
                 if t % 10 == 0:
                     print("\rBitflipped index: %d, t: %d                  " % (b, t), end='')
                 # Progress reference and current states with 1 step
@@ -166,12 +166,12 @@ class ElectricUnicorn:
         if args.elf_type == 'memcpy':
             key_meta = InputMeta("data", 128)
             plaintext_meta = InputMeta("buffer", 128)
-            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, MEMCPY_NUM_INSTRUCTIONS)
+            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, MEMCPY_NUM_INSTRUCTIONS, skip=args.skip)
             m.show()
         elif args.elf_type == 'hmac-sha1':
             key_meta = InputMeta("fake_pmk", 32)
             plaintext_meta = InputMeta("data", 72)
-            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS)
+            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS, skip=args.skip)
             m.show()
 
 

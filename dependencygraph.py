@@ -1,6 +1,8 @@
-import numpy as np
+from collections import namedtuple
 from x86_const_enum import X86ConstEnum
 from enum import IntEnum
+
+ByTEntry = namedtuple("ByTEntry", ["key", "bit", "value"])
 
 
 class DependencyGraphKey(IntEnum):
@@ -14,6 +16,7 @@ class DependencyGraph:
         self._graph = {}
         self._prev_t = {}
         self._last_t = {}
+        self._by_t = {}
         self.name = name
         self.file_name = name.lower().replace(" ", "_") if name is not None else None
         self.default_graph_key = default_graph_key
@@ -85,7 +88,14 @@ class DependencyGraph:
         node_id, _ = self.get_node_id(key, t)
         self._graph_key[node_id] = graph_key
 
-        # Add node to graph
+        # Add node to graph by time
+        entry = ByTEntry(key=key, bit=b, value=value)
+        if t in self._by_t:
+            self._by_t[t].append(entry)
+        else:
+            self._by_t[t] = [entry]
+
+        # Add node to graph by key
         if key in self._graph:
             if b in self._graph[key]:
                 last_t = self._last_t[key][b]
