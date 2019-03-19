@@ -35,9 +35,10 @@ class X64EmulationState:
     def write_register(self, register, value):
         self.registers[register] = value
 
-    def copy(self):
+    def copy(self, registers_only=False):
         new = X64EmulationState()
-        new.memory = np.copy(self.memory)
+        if not registers_only:
+            new.memory = np.copy(self.memory)
         new.registers = np.copy(self.registers)
         new.elf = self.elf
         new.ip = Ref(self.ip.value)

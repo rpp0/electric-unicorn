@@ -28,14 +28,6 @@ HMACSHA1_NUM_INSTRUCTIONS = 44344
 HMACSHA1_NUM_BITFLIPS = 1
 
 
-def read_memory(memory: np.ndarray, address, length):
-    return memory[address:address+length]
-
-
-def write_memory(memory: np.ndarray, address, data: bytes):
-    memory[address:address+len(data)] = bytearray(data)
-
-
 class Elf:
     def __init__(self, meta, memory):
         self.meta = meta
@@ -84,25 +76,19 @@ class ElectricUnicorn:
         return Elf(elf, buffer)
 
     def hmac_sha1(self, pmk, data):
-        # Prepare memory
-        local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
-        write_memory(local_memory, self.elf.get_symbol_address('fake_pmk'), pmk)
-        write_memory(local_memory, self.elf.get_symbol_address('data'), data)
+        state = X64EmulationState(self.elf)
+        state.write_symbol('fake_pmk', pmk)
+        state.write_symbol('data', data)
+        state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
         # Simulate
-        results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
+        results = trace_register_hws(state, self.elf.get_symbol_address('stop'))
         print_numpy_as_hex(np.array(bytearray(pmk), dtype=np.uint8), label="PMK")
-        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
+        print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
 
         return results
 
-    def plot_hmac_sha1(self, args):
-        if not args.key:
-            pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
-        else:
-            pmk = binascii.unhexlify(args.key)
-        data = b"\x00" * 76
-
+    def plot_hmac_sha1(self, pmk, data):
         state = X64EmulationState(self.elf)
         state.write_symbol("fake_pmk", pmk)
         state.write_symbol("data", data)
@@ -112,21 +98,25 @@ class ElectricUnicorn:
         for t in range(0, HMACSHA1_NUM_INSTRUCTIONS):
             if t % 10 == 0:
                 print("\rt: %d                     " % t, end='')
-            prev_state = state.copy()
+            prev_state = state.copy(registers_only=True)
             emulate(state, self.elf.get_symbol_address('stop'), 1)
-            leakage_result = state.get_leakages(prev_state, hamming_distance_sum_leakage, from_memory=False)
-            results.append(leakage_result.leakages)
+            leakage_result = state.get_leakages(prev_state, hamming_distance_leakage, from_memory=False)
+            if type(leakage_result.leakages) is list:
+                results.extend(leakage_result.leakages)
+            else:
+                results.append(leakage_result.leakages)
 
         return results
 
     def memcpy(self, data, buffer):
-        local_memory = np.array(self.elf.memory, dtype=np.uint8)  # Make copy of memory
-        write_memory(local_memory, self.elf.get_symbol_address('data'), data)
-        write_memory(local_memory, self.elf.get_symbol_address('buffer'), buffer)
+        state = X64EmulationState(self.elf)
+        state.write_symbol('data', data)
+        state.write_symbol('buffer', buffer)
+        state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
         # Simulate
-        results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
-        print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('buffer'), 128), label="Data (after)")
+        results = trace_register_hws(state, self.elf.get_symbol_address('stop'))
+        print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('buffer'), 128), label="Data (after)")
 
         return results
 
@@ -231,8 +221,8 @@ if __name__ == "__main__":
         exit(0)
 
     for i in range(0, args.num_traces):
-        #pmk = b"\x00\x00" + random_uniform(1) + b"\x00"*29
-        #pmk = random_uniform(32)
+        # pmk = b"\x00\x00" + random_uniform(1) + b"\x00"*29
+        # pmk = random_uniform(32)
         results = None
         if args.elf_type == 'hmac-sha1':
             if not args.keydep:
@@ -241,9 +231,8 @@ if __name__ == "__main__":
                 else:
                     pmk = binascii.unhexlify(args.key)
                 data = b"\x00" * 76
-                results = e.hmac_sha1(pmk=pmk, data=data)
-
-                # results = e.plot_hmac_sha1(args)
+                # results = e.hmac_sha1(pmk=pmk, data=data)
+                results = e.plot_hmac_sha1(pmk=pmk, data=data)
             else:
                 results = e.hmac_sha1_keydep(skip=args.skip)
         elif args.elf_type == 'memcpy':

@@ -331,11 +331,11 @@ uint64_t round_up(uint64_t number) {
 }
 
 
-uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t entrypoint, uint64_t sp, uint64_t stop_addr) {
+uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr) {
     printf("Memory size: %lu\n", memory_size);
     printf("Entrypoint : %lu\n", entrypoint);
     printf("Stop addr  : %lu\n", stop_addr);
-    printf("SP         : %lu\n", sp);
+    printf("SP         : %lu\n", registers[UC_X86_REG_RSP]);
     printf("Page size  : %d\n", PAGE_SIZE);
 
     assert(hamming_distance_64(0x0, 0x8000000000000000) == 2);
@@ -365,19 +365,7 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
 	uc_hook_add(uc, &instruction_hook, UC_HOOK_CODE, hook_code, results, 0, memory_size);
 	uc_hook_add(uc, &instruction_hook, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 0, 0);
 
-    // Setup registers
-    uint64_t registers[NUM_REGISTERS];
-    for(uint64_t i = 0; i < NUM_REGISTERS; i++)
-        registers[i] = 0;
-    registers[UC_X86_REG_RSP] = sp;
-    // TODO use registers[] array for this
-	//int rflags = 0x00000200; // X86
-    //uc_reg_write(uc, UC_X86_REG_EFLAGS, &rflags); // X86
-    //uc_reg_write(uc, UC_ARM_REG_SP, &sp); // ARM
-    //int apsr = 0xFFFFFFFF;
-	//uc_reg_write(uc, UC_ARM_REG_APSR, &apsr);
-
-    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, registers, NUM_REGISTERS, entrypoint, stop_addr, 0);
+    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, registers, registers_size, entrypoint, stop_addr, 0);
 
     printf("Emulation completed\n");
     printf("Instructions: %ld\n", num_instructions);
