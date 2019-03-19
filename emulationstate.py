@@ -1,6 +1,9 @@
 import numpy as np
 from unicorn.x86_const import *
-from util import EUException, Ref
+from util import EUException, Ref, diff_numpy_arrays
+from collections import namedtuple
+
+LeakageResult = namedtuple("LeakageResult", ["old", "new", "indices", "leakages", "is_memory", "rip"])
 
 
 class X64EmulationState:
@@ -39,16 +42,16 @@ class X64EmulationState:
         new.ip = Ref(self.ip.value)
         return new
 
-    def diff(self, previous_state, b, t, dependency_graph, registers_only=False, skip_dup=True):
-        if len(previous_state.memory) != len(self.memory):
+    def diff(self, other_state, b, t, dependency_graph, registers_only=False, skip_dup=True):
+        if len(other_state.memory) != len(self.memory):
             raise EUException("Cannot diff memories of different sizes")
-        if len(previous_state.registers) != len(self.registers):
+        if len(other_state.registers) != len(self.registers):
             raise EUException("Cannot diff registers of different sizes")
 
         if not registers_only:
             # Vectorized approach (faster)
             ind_mem = np.arange(len(self.memory))
-            diff_mem = (self.memory - previous_state.memory) != 0
+            diff_mem = (self.memory - other_state.memory) != 0
             select_mem = self.memory[diff_mem]
             select_ind = ind_mem[diff_mem]
             for i in range(len(select_mem)):
@@ -56,11 +59,23 @@ class X64EmulationState:
 
         # TODO dup code
         ind_reg = np.arange(len(self.registers))
-        diff_reg = (self.registers - previous_state.registers) != 0
+        diff_reg = (self.registers - other_state.registers) != 0
         select_reg = self.registers[diff_reg]
         select_ind = ind_reg[diff_reg]
         for i in range(len(select_reg)):
             dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True, skip_dup=skip_dup)
+
+    def get_leakages(self, previous_state, leakage_function, from_memory=False):
+        rip = self.registers[UC_X86_REG_RIP]
+
+        if from_memory:
+            prev_mem, new_mem, addresses = diff_numpy_arrays(previous_state.memory, self.memory)
+            leakages = leakage_function(prev_mem, new_mem)
+            return LeakageResult(old=prev_mem, new=new_mem, indices=addresses, leakages=leakages, is_memory=True, rip=rip)
+        else:
+            prev_reg, new_reg, registers = diff_numpy_arrays(previous_state.registers, self.registers)
+            leakages = leakage_function(prev_reg, new_reg)
+            return LeakageResult(old=prev_reg, new=new_reg, indices=registers, leakages=leakages, is_memory=False, rip=rip)
 
     def __repr__(self):
         result = "Memory:\n"

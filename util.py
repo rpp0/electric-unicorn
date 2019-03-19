@@ -56,3 +56,17 @@ def print_numpy_as_hex(np_array: np.ndarray, label: str=None):
             print('')
     if cnt != 0:
         print('')
+
+
+def diff_numpy_arrays(old: np.ndarray, new: np.ndarray):
+    if old.size != new.size:
+        raise EUException("Numpy buffers cannot be different sizes")
+
+    # Vectorized approach
+    array_indices = np.arange(len(new))
+    changed_values = (new - old) != 0
+    old_diff = old[changed_values]
+    new_diff = new[changed_values]
+    diff_indices = array_indices[changed_values]
+
+    return old_diff, new_diff, diff_indices
