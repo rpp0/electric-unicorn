@@ -9,8 +9,8 @@
 #define ARM_CODE "\x37\x00\xa0\xe3\x03\x10\x42\xe0" // mov r0, #0x37; sub r1, r2, r3
 #define THUMB_CODE "\x83\xb0" // sub    sp, #0xc
 #define PAGE_SIZE 4096
-#define NUM_HAMMING_REGISTERS 174
-#define NUM_REGISTERS UC_X86_REG_ENDING-1
+#define NUM_HAMMING_REGISTERS 173
+#define NUM_REGISTERS UC_X86_REG_ENDING-2
 
 uint64_t unicorn_execute(uc_engine* uc, uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
 uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
@@ -217,7 +217,6 @@ int hamming_registers[] = { // X86
 	UC_X86_REG_FPCW,
 	UC_X86_REG_FPTAG,
 	UC_X86_REG_MSR,
-	UC_X86_REG_ENDING,
 };
 
 uint64_t old_vals[NUM_HAMMING_REGISTERS];

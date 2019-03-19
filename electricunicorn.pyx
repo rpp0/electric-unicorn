@@ -34,3 +34,4 @@ def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):
 
     if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it
         state.ip.value = state.registers[UC_X86_REG_RIP]
+    state.step_count += 1

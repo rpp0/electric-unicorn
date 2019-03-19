@@ -18,6 +18,7 @@ from inputs import InputMeta
 from mutinf import MutInfAnalysis
 from util import EUException, random_hamming, random_uniform, print_numpy_as_hex
 from emulationstate import X64EmulationState
+from leakage_functions import *
 
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
@@ -92,6 +93,29 @@ class ElectricUnicorn:
         results = trace_register_hws(local_memory, self.elf.meta.entrypoint, self.elf.sp, self.elf.get_symbol_address('stop'))
         print_numpy_as_hex(np.array(bytearray(pmk), dtype=np.uint8), label="PMK")
         print_numpy_as_hex(read_memory(local_memory, self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
+
+        return results
+
+    def plot_hmac_sha1(self, args):
+        if not args.key:
+            pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
+        else:
+            pmk = binascii.unhexlify(args.key)
+        data = b"\x00" * 76
+
+        state = X64EmulationState(self.elf)
+        state.write_symbol("fake_pmk", pmk)
+        state.write_symbol("data", data)
+        state.write_register(UC_X86_REG_RSP, self.elf.sp)
+
+        results = []
+        for t in range(0, HMACSHA1_NUM_INSTRUCTIONS):
+            if t % 10 == 0:
+                print("\rt: %d                     " % t, end='')
+            prev_state = state.copy()
+            emulate(state, self.elf.get_symbol_address('stop'), 1)
+            leakage_result = state.get_leakages(prev_state, hamming_distance_sum_leakage, from_memory=False)
+            results.append(leakage_result.leakages)
 
         return results
 
@@ -218,6 +242,8 @@ if __name__ == "__main__":
                     pmk = binascii.unhexlify(args.key)
                 data = b"\x00" * 76
                 results = e.hmac_sha1(pmk=pmk, data=data)
+
+                # results = e.plot_hmac_sha1(args)
             else:
                 results = e.hmac_sha1_keydep(skip=args.skip)
         elif args.elf_type == 'memcpy':

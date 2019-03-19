@@ -3,11 +3,12 @@ from unicorn.x86_const import *
 from util import EUException, Ref, diff_numpy_arrays
 from collections import namedtuple
 
-LeakageResult = namedtuple("LeakageResult", ["old", "new", "indices", "leakages", "is_memory", "rip"])
+LeakageResult = namedtuple("LeakageResult", ["t", "old", "new", "indices", "leakages", "is_memory", "rip"])
 
 
 class X64EmulationState:
     def __init__(self, elf=None):
+        self.step_count = 0
         if elf is not None:
             self.memory = np.array(elf.memory, dtype=np.uint8)
             self.registers = np.zeros(UC_X86_REG_ENDING-1, dtype=np.uint64)  # Do not include UC_X86_REG_ENDING -- weird stuff will happen
@@ -40,6 +41,7 @@ class X64EmulationState:
         new.registers = np.copy(self.registers)
         new.elf = self.elf
         new.ip = Ref(self.ip.value)
+        new.step_count = self.step_count
         return new
 
     def diff(self, other_state, b, t, dependency_graph, registers_only=False, skip_dup=True):
@@ -66,16 +68,16 @@ class X64EmulationState:
             dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True, skip_dup=skip_dup)
 
     def get_leakages(self, previous_state, leakage_function, from_memory=False):
-        rip = self.registers[UC_X86_REG_RIP]
+        rip = self.ip.value
 
         if from_memory:
             prev_mem, new_mem, addresses = diff_numpy_arrays(previous_state.memory, self.memory)
             leakages = leakage_function(prev_mem, new_mem)
-            return LeakageResult(old=prev_mem, new=new_mem, indices=addresses, leakages=leakages, is_memory=True, rip=rip)
+            return LeakageResult(t=self.step_count, old=prev_mem, new=new_mem, indices=addresses, leakages=leakages, is_memory=True, rip=rip)
         else:
             prev_reg, new_reg, registers = diff_numpy_arrays(previous_state.registers, self.registers)
             leakages = leakage_function(prev_reg, new_reg)
-            return LeakageResult(old=prev_reg, new=new_reg, indices=registers, leakages=leakages, is_memory=False, rip=rip)
+            return LeakageResult(t=self.step_count, old=prev_reg, new=new_reg, indices=registers, leakages=leakages, is_memory=False, rip=rip)
 
     def __repr__(self):
         result = "Memory:\n"
