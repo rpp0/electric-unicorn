@@ -235,7 +235,8 @@ if __name__ == "__main__":
                     pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
                 else:
                     pmk = binascii.unhexlify(args.key)
-                data = b"\x00" * 76
+                # data = b"\x00" * 76
+                data = random_hamming(76, subkey_size=4)
                 if args.action == 'emulate_fast':
                     e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data)  # Unicorn to get leakage and plot fast
                 else:
