@@ -52,10 +52,9 @@ class Elf:
 
 
 class ElectricUnicorn:
-    def __init__(self, elf_path, dataset_path=None):
+    def __init__(self, elf_path):
         self.elf_path = os.path.abspath(elf_path)
         self.elf = self._analyze_elf()
-        self.dataset_path = dataset_path
         self.emulation_db = EmulationDB()
 
     def _analyze_elf(self):
@@ -77,7 +76,7 @@ class ElectricUnicorn:
 
         return Elf(elf, buffer)
 
-    def hmac_sha1(self, pmk, data):
+    def get_hmac_sha1_leakage_fast(self, pmk, data):
         state = X64EmulationState(self.elf)
         state.write_symbol('fake_pmk', pmk)
         state.write_symbol('data', data)
@@ -111,7 +110,7 @@ class ElectricUnicorn:
         self.emulation_db.add('hmac_sha1', pmk, data, ptk, None, blob)
         print("Added 1 trace to db")
 
-    def memcpy(self, data, buffer):
+    def get_memcpy_leakage_fast(self, data, buffer):
         state = X64EmulationState(self.elf)
         state.write_symbol('data', data)
         state.write_symbol('buffer', buffer)
@@ -197,13 +196,12 @@ if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
     arg_parser.add_argument('elf_path', type=str, help='Path to the ELF to analyze.')
     arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
-    arg_parser.add_argument('dataset_path', nargs='?', type=str, default=None, help='Path to store the simulated traces in.')
+    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot'])
+    arg_parser.add_argument('--cw-path', type=str, default=None, help='Path to store the simulated traces in (CW format).')
     arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
-    arg_parser.add_argument('--keydep', default=False, action='store_true', help='Create key dependency graph.')
     arg_parser.add_argument('--key', type=str, default=None, help='Hex stream fixed key to use.')
     arg_parser.add_argument('--skip', type=int, default=0, help='Steps to skip in time.')
-    arg_parser.add_argument('--mi', default=False, action='store_true', help='Mutual information analysis.')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
@@ -213,71 +211,74 @@ if __name__ == "__main__":
     ciphertexts = []
     trace_set = []
 
-    e = ElectricUnicorn(args.elf_path, dataset_path=args.dataset_path)
+    e = ElectricUnicorn(args.elf_path)
+
+    # EMcap client for online streaming
     client = None
     if args.online_ip is not None:
         from emcap_online_client import EMCapOnlineClient
         client = EMCapOnlineClient()
         client.connect(args.online_ip)
 
-    if args.mi:
+    # Action to perform
+    if args.action == 'mi':
         e.mutual_information_analysis(args)
-        exit(0)
 
-    for i in range(0, args.num_traces):
-        # pmk = b"\x00\x00" + random_uniform(1) + b"\x00"*29
-        # pmk = random_uniform(32)
-        results = None
-        if args.elf_type == 'hmac-sha1':
-            if not args.keydep:
+    elif args.action == 'emulate' or args.action == 'emulate_fast':
+        for i in range(0, args.num_traces):
+            if args.elf_type == 'hmac-sha1':
                 if not args.key:
                     pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
                 else:
                     pmk = binascii.unhexlify(args.key)
                 data = b"\x00" * 76
-                # results = e.hmac_sha1(pmk=pmk, data=data)
-                e.emulate_hmac_sha1(pmk=pmk, data=data)
-            else:
-                e.hmac_sha1_keydep(skip=args.skip)
-        elif args.elf_type == 'memcpy':
-            if not args.keydep:
+                if args.action == 'emulate_fast':
+                    e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data)  # Unicorn to get leakage and plot fast
+                else:
+                    e.emulate_hmac_sha1(pmk=pmk, data=data)  # Store in db
+            elif args.elf_type == 'memcpy':
                 data_to_copy = random_hamming(128, subkey_size=1)
                 buffer = b"\x00"*128
-                #buffer = random_hamming(128, subkey_size=1)
-                e.memcpy(buffer=buffer, data=data_to_copy)
-            else:
-                e.memcpy_keydep(skip=args.skip)
-
-        if args.keydep:
-            print("Done keydep")
-            exit(0)
-
-        if args.dataset_path is not None:
-            if args.elf_type == 'hmac-sha1':
-                plaintexts.append(bytearray(data))
-                keys.append(bytearray(pmk))
-            elif args.elf_type == 'memcpy':
-                plaintexts.append(bytearray(buffer))
-                keys.append(bytearray(data_to_copy))
-
-            trace_set.append(results.astype(np.float32))
-
-            if len(trace_set) == 256:
-                assert (len(trace_set) == len(keys))
-                np_trace_set = np.array(trace_set)
-                np_plaintexts = np.array(plaintexts, dtype=np.uint8)
-                np_keys = np.array(keys, dtype=np.uint8)
-
-                if args.online_ip is None:  # Store to file
-                    filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
-                    np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
-                    np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
-                    np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
+                # buffer = random_hamming(128, subkey_size=1)
+                if args.actions == 'emulate_fast':
+                    e.get_memcpy_leakage_fast(data=data_to_copy, buffer=buffer)
                 else:
-                    client.send(np_trace_set, np_plaintexts, None, np_keys, None)
+                    raise NotImplementedError  # Store in db
 
-                keys = []
-                plaintexts = []
-                ciphertexts = []
-                trace_set = []
+    elif args.action == 'keydep':
+        if args.elf_type == 'hmac-sha1':
+            e.hmac_sha1_keydep(skip=args.skip)
+        elif args.elf_type == 'memcpy':
+            e.memcpy_keydep(skip=args.skip)
 
+    if args.cw_path is not None:
+        """
+        if args.elf_type == 'hmac-sha1':
+            plaintexts.append(bytearray(data))
+            keys.append(bytearray(pmk))
+        elif args.elf_type == 'memcpy':
+            plaintexts.append(bytearray(buffer))
+            keys.append(bytearray(data_to_copy))
+
+        trace_set.append(results.astype(np.float32))
+
+        if len(trace_set) == 256:
+            assert (len(trace_set) == len(keys))
+            np_trace_set = np.array(trace_set)
+            np_plaintexts = np.array(plaintexts, dtype=np.uint8)
+            np_keys = np.array(keys, dtype=np.uint8)
+
+            if args.online_ip is None:  # Store to file
+                filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
+                np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
+                np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
+                np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
+            else:
+                client.send(np_trace_set, np_plaintexts, None, np_keys, None)
+
+            keys = []
+            plaintexts = []
+            ciphertexts = []
+            trace_set = []
+        """
+        raise NotImplementedError
