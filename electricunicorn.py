@@ -106,8 +106,7 @@ class ElectricUnicorn:
             emulation_results.append(emulation_result)
 
         ptk = state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64)
-        blob = pickle.dumps(emulation_results)
-        self.emulation_db.add('hmac_sha1', pmk, data, ptk, None, blob)
+        self.emulation_db.add('hmac_sha1', pmk, data, ptk, None, emulation_results)
         print("Added 1 trace to db")
 
     def get_memcpy_leakage_fast(self, data, buffer):
@@ -191,6 +190,11 @@ class ElectricUnicorn:
             m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS, skip=args.skip)
             m.show()
 
+    def plot_emulation_db(self):
+        for trace in self.emulation_db.get_all():
+            p = LeakagePlot(trace.emulation_results_blob, hamming_distance_leakage)
+            p.show()
+
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
@@ -250,6 +254,9 @@ if __name__ == "__main__":
             e.hmac_sha1_keydep(skip=args.skip)
         elif args.elf_type == 'memcpy':
             e.memcpy_keydep(skip=args.skip)
+
+    elif args.action == 'plot':
+        e.plot_emulation_db()
 
     if args.cw_path is not None:
         """

@@ -17,7 +17,16 @@ class LeakagePlot:
                 points.append(leakages)
         return points
 
+    def show(self):
+        points = self._get_points()
+        LeakagePlot.plot(points, None, title="Leakage over time using %s" % self.leakage_function.__name__)
+
     @staticmethod
-    def plot(points, labels):
-        plt.plot(points)
+    def plot(points, labels, title="Leakage over time"):
+        plt.title(title)
+        plt.plot(points, label="Leakage")
+        if labels is not None:
+            for label in labels:
+                pass
+        plt.legend()
         plt.show()
