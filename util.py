@@ -1,6 +1,9 @@
 import random
 import struct
 import numpy as np
+from collections import namedtuple
+
+EmulationResult = namedtuple("EmulationResult", ["t", "old", "new", "indices", "is_memory", "rip"])
 
 
 class EUException(Exception):

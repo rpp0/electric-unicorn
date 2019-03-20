@@ -1,9 +1,6 @@
 import numpy as np
 from unicorn.x86_const import *
-from util import EUException, Ref, diff_numpy_arrays
-from collections import namedtuple
-
-LeakageResult = namedtuple("LeakageResult", ["t", "old", "new", "indices", "leakages", "is_memory", "rip"])
+from util import EUException, Ref, diff_numpy_arrays, EmulationResult
 
 
 class X64EmulationState:
@@ -68,17 +65,15 @@ class X64EmulationState:
         for i in range(len(select_reg)):
             dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True, skip_dup=skip_dup)
 
-    def get_leakages(self, previous_state, leakage_function, from_memory=False):
+    def get_emulation_result(self, previous_state, from_memory=False):
         rip = self.ip.value
 
         if from_memory:
             prev_mem, new_mem, addresses = diff_numpy_arrays(previous_state.memory, self.memory)
-            leakages = leakage_function(prev_mem, new_mem)
-            return LeakageResult(t=self.step_count, old=prev_mem, new=new_mem, indices=addresses, leakages=leakages, is_memory=True, rip=rip)
+            return EmulationResult(t=self.step_count, old=prev_mem, new=new_mem, indices=addresses, is_memory=True, rip=rip)
         else:
             prev_reg, new_reg, registers = diff_numpy_arrays(previous_state.registers, self.registers)
-            leakages = leakage_function(prev_reg, new_reg)
-            return LeakageResult(t=self.step_count, old=prev_reg, new=new_reg, indices=registers, leakages=leakages, is_memory=False, rip=rip)
+            return EmulationResult(t=self.step_count, old=prev_reg, new=new_reg, indices=registers, is_memory=False, rip=rip)
 
     def __repr__(self):
         result = "Memory:\n"

@@ -6,7 +6,6 @@ sys.path.insert(0, '/home/pieter/projects/em/')
 import lief
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import argparse
 import binascii
 import pickle
@@ -16,9 +15,11 @@ from unicorn.x86_const import *
 from dependencygraph import DependencyGraph, DependencyGraphKey
 from inputs import InputMeta
 from mutinf import MutInfAnalysis
-from util import EUException, random_hamming, random_uniform, print_numpy_as_hex
+from util import EUException, random_hamming, random_uniform, print_numpy_as_hex, EmulationResult
 from emulationstate import X64EmulationState
 from leakage_functions import *
+from emulationdb import EmulationDB
+from leakageplot import LeakagePlot
 
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
@@ -55,6 +56,7 @@ class ElectricUnicorn:
         self.elf_path = os.path.abspath(elf_path)
         self.elf = self._analyze_elf()
         self.dataset_path = dataset_path
+        self.emulation_db = EmulationDB()
 
     def _analyze_elf(self):
         if self.elf_path is None:
@@ -82,31 +84,32 @@ class ElectricUnicorn:
         state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
         # Simulate
-        results = trace_register_hws(state, self.elf.get_symbol_address('stop'))
+        leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'))
         print_numpy_as_hex(np.array(bytearray(pmk), dtype=np.uint8), label="PMK")
         print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
 
-        return results
+        p = LeakagePlot(None, None)
+        p.plot(points=leakage_points, labels=None)
 
-    def plot_hmac_sha1(self, pmk, data):
+    def emulate_hmac_sha1(self, pmk, data):
         state = X64EmulationState(self.elf)
         state.write_symbol("fake_pmk", pmk)
         state.write_symbol("data", data)
         state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
-        results = []
+        emulation_results = []
         for t in range(0, HMACSHA1_NUM_INSTRUCTIONS):
             if t % 10 == 0:
                 print("\rt: %d                     " % t, end='')
             prev_state = state.copy(registers_only=True)
             emulate(state, self.elf.get_symbol_address('stop'), 1)
-            leakage_result = state.get_leakages(prev_state, hamming_distance_leakage, from_memory=False)
-            if type(leakage_result.leakages) is list:
-                results.extend(leakage_result.leakages)
-            else:
-                results.append(leakage_result.leakages)
+            emulation_result = state.get_emulation_result(prev_state, from_memory=False)
+            emulation_results.append(emulation_result)
 
-        return results
+        ptk = state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64)
+        blob = pickle.dumps(emulation_results)
+        self.emulation_db.add('hmac_sha1', pmk, data, ptk, None, blob)
+        print("Added 1 trace to db")
 
     def memcpy(self, data, buffer):
         state = X64EmulationState(self.elf)
@@ -115,10 +118,11 @@ class ElectricUnicorn:
         state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
         # Simulate
-        results = trace_register_hws(state, self.elf.get_symbol_address('stop'))
+        leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'))
         print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('buffer'), 128), label="Data (after)")
 
-        return results
+        p = LeakagePlot(None, None)
+        p.plot(points=leakage_points, labels=None)
 
     def hmac_sha1_keydep(self, skip):
         self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS, HMACSHA1_NUM_BITFLIPS, skip=skip)
@@ -232,53 +236,48 @@ if __name__ == "__main__":
                     pmk = binascii.unhexlify(args.key)
                 data = b"\x00" * 76
                 # results = e.hmac_sha1(pmk=pmk, data=data)
-                results = e.plot_hmac_sha1(pmk=pmk, data=data)
+                e.emulate_hmac_sha1(pmk=pmk, data=data)
             else:
-                results = e.hmac_sha1_keydep(skip=args.skip)
+                e.hmac_sha1_keydep(skip=args.skip)
         elif args.elf_type == 'memcpy':
             if not args.keydep:
                 data_to_copy = random_hamming(128, subkey_size=1)
                 buffer = b"\x00"*128
                 #buffer = random_hamming(128, subkey_size=1)
-                results = e.memcpy(buffer=buffer, data=data_to_copy)
+                e.memcpy(buffer=buffer, data=data_to_copy)
             else:
-                results = e.memcpy_keydep(skip=args.skip)
+                e.memcpy_keydep(skip=args.skip)
 
         if args.keydep:
             print("Done keydep")
             exit(0)
 
-        if args.dataset_path is None:
-            if args.online_ip is None:
-                plt.plot(results)
-                plt.show()
-                continue
+        if args.dataset_path is not None:
+            if args.elf_type == 'hmac-sha1':
+                plaintexts.append(bytearray(data))
+                keys.append(bytearray(pmk))
+            elif args.elf_type == 'memcpy':
+                plaintexts.append(bytearray(buffer))
+                keys.append(bytearray(data_to_copy))
 
-        if args.elf_type == 'hmac-sha1':
-            plaintexts.append(bytearray(data))
-            keys.append(bytearray(pmk))
-        elif args.elf_type == 'memcpy':
-            plaintexts.append(bytearray(buffer))
-            keys.append(bytearray(data_to_copy))
+            trace_set.append(results.astype(np.float32))
 
-        trace_set.append(results.astype(np.float32))
+            if len(trace_set) == 256:
+                assert (len(trace_set) == len(keys))
+                np_trace_set = np.array(trace_set)
+                np_plaintexts = np.array(plaintexts, dtype=np.uint8)
+                np_keys = np.array(keys, dtype=np.uint8)
 
-        if len(trace_set) == 256:
-            assert (len(trace_set) == len(keys))
-            np_trace_set = np.array(trace_set)
-            np_plaintexts = np.array(plaintexts, dtype=np.uint8)
-            np_keys = np.array(keys, dtype=np.uint8)
+                if args.online_ip is None:  # Store to file
+                    filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
+                    np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
+                    np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
+                    np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
+                else:
+                    client.send(np_trace_set, np_plaintexts, None, np_keys, None)
 
-            if args.online_ip is None:  # Store to file
-                filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
-                np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
-                np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
-                np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
-            else:
-                client.send(np_trace_set, np_plaintexts, None, np_keys, None)
-
-            keys = []
-            plaintexts = []
-            ciphertexts = []
-            trace_set = []
+                keys = []
+                plaintexts = []
+                ciphertexts = []
+                trace_set = []
 
