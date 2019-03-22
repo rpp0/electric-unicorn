@@ -5,8 +5,8 @@ from setuptools import setup
 from setuptools.extension import Extension
 from Cython.Build import cythonize
 
-ext = Extension('electricunicorn',
-        sources = ['simulate.c', 'electricunicorn.pyx'],
+ext = Extension('celectricunicorn',
+        sources = ['simulate.c', 'celectricunicorn.pyx'],
         #library_dirs = [CUDA['lib64']],
         libraries = ['unicorn'],
         language = 'c',

@@ -15,13 +15,13 @@
         "libraries": [
             "unicorn"
         ],
-        "name": "electricunicorn",
+        "name": "celectricunicorn",
         "sources": [
-            "electricunicorn.pyx",
+            "celectricunicorn.pyx",
             "simulate.c"
         ]
     },
-    "module_name": "electricunicorn"
+    "module_name": "celectricunicorn"
 }
 END: Cython Metadata */
 
@@ -630,8 +630,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__electricunicorn
-#define __PYX_HAVE_API__electricunicorn
+#define __PYX_HAVE__celectricunicorn
+#define __PYX_HAVE_API__celectricunicorn
 /* Early includes */
 #include <string.h>
 #include <stdio.h>
@@ -868,7 +868,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "electricunicorn.pyx",
+  "celectricunicorn.pyx",
   "env/lib/python3.7/site-packages/Cython/Includes/numpy/__init__.pxd",
   "env/lib/python3.7/site-packages/Cython/Includes/cpython/type.pxd",
 };
@@ -1714,15 +1714,15 @@ static PyTypeObject *__pyx_ptype_5numpy_ndarray = 0;
 static PyTypeObject *__pyx_ptype_5numpy_ufunc = 0;
 static CYTHON_INLINE char *__pyx_f_5numpy__util_dtypestring(PyArray_Descr *, char *, char *, int *); /*proto*/
 
-/* Module declarations from 'electricunicorn' */
+/* Module declarations from 'celectricunicorn' */
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_uint16_t = { "uint16_t", NULL, sizeof(__pyx_t_5numpy_uint16_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_uint16_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_uint16_t), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t = { "uint8_t", NULL, sizeof(__pyx_t_5numpy_uint8_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_uint8_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_uint8_t), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_uint64_t = { "uint64_t", NULL, sizeof(__pyx_t_5numpy_uint64_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_uint64_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_uint64_t), 0 };
-#define __Pyx_MODULE_NAME "electricunicorn"
-extern int __pyx_module_is_main_electricunicorn;
-int __pyx_module_is_main_electricunicorn = 0;
+#define __Pyx_MODULE_NAME "celectricunicorn"
+extern int __pyx_module_is_main_celectricunicorn;
+int __pyx_module_is_main_celectricunicorn = 0;
 
-/* Implementation of 'electricunicorn' */
+/* Implementation of 'celectricunicorn' */
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_RuntimeError;
@@ -1758,7 +1758,7 @@ static const char __pyx_k_RuntimeError[] = "RuntimeError";
 static const char __pyx_k_UC_X86_REG_RIP[] = "UC_X86_REG_RIP";
 static const char __pyx_k_n_instructions[] = "n_instructions";
 static const char __pyx_k_registers_size[] = "registers_size";
-static const char __pyx_k_electricunicorn[] = "electricunicorn";
+static const char __pyx_k_celectricunicorn[] = "celectricunicorn";
 static const char __pyx_k_max_instructions[] = "max_instructions";
 static const char __pyx_k_max_result_bytes[] = "max_result_bytes";
 static const char __pyx_k_max_results_size[] = "max_results_size";
@@ -1766,7 +1766,7 @@ static const char __pyx_k_reset_entrypoint[] = "reset_entrypoint";
 static const char __pyx_k_unicorn_x86_const[] = "unicorn.x86_const";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_trace_register_hws[] = "trace_register_hws";
-static const char __pyx_k_electricunicorn_pyx[] = "electricunicorn.pyx";
+static const char __pyx_k_celectricunicorn_pyx[] = "celectricunicorn.pyx";
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
 static const char __pyx_k_numpy_core_multiarray_failed_to[] = "numpy.core.multiarray failed to import";
 static const char __pyx_k_unknown_dtype_code_in_numpy_pxd[] = "unknown dtype code in numpy.pxd (%d)";
@@ -1782,12 +1782,12 @@ static PyObject *__pyx_kp_u_Non_native_byte_order_not_suppor;
 static PyObject *__pyx_n_s_RuntimeError;
 static PyObject *__pyx_n_s_UC_X86_REG_RIP;
 static PyObject *__pyx_n_s_ValueError;
+static PyObject *__pyx_n_s_celectricunicorn;
+static PyObject *__pyx_kp_s_celectricunicorn_pyx;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_cmemory;
 static PyObject *__pyx_n_s_cregisters;
 static PyObject *__pyx_n_s_dtype;
-static PyObject *__pyx_n_s_electricunicorn;
-static PyObject *__pyx_kp_s_electricunicorn_pyx;
 static PyObject *__pyx_n_s_emulate;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_ip;
@@ -1823,8 +1823,8 @@ static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
 static PyObject *__pyx_n_s_ushort;
 static PyObject *__pyx_n_s_value;
 static PyObject *__pyx_n_s_zeros;
-static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr); /* proto */
-static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions, PyObject *__pyx_v_reset_entrypoint); /* proto */
+static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr); /* proto */
+static PyObject *__pyx_pf_16celectricunicorn_2emulate(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions, PyObject *__pyx_v_reset_entrypoint); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
 static PyObject *__pyx_int_1;
@@ -1842,7 +1842,7 @@ static PyObject *__pyx_codeobj__9;
 static PyObject *__pyx_codeobj__11;
 /* Late includes */
 
-/* "electricunicorn.pyx":14
+/* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
  * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
@@ -1851,9 +1851,9 @@ static PyObject *__pyx_codeobj__11;
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_15electricunicorn_1trace_register_hws(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_15electricunicorn_1trace_register_hws = {"trace_register_hws", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_15electricunicorn_1trace_register_hws, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_15electricunicorn_1trace_register_hws(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_16celectricunicorn_1trace_register_hws(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_16celectricunicorn_1trace_register_hws = {"trace_register_hws", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_16celectricunicorn_1trace_register_hws, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_16celectricunicorn_1trace_register_hws(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_state = 0;
   PyObject *__pyx_v_stop_addr = 0;
   PyObject *__pyx_r = 0;
@@ -1901,18 +1901,18 @@ static PyObject *__pyx_pw_15electricunicorn_1trace_register_hws(PyObject *__pyx_
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("trace_register_hws", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 14, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("electricunicorn.trace_register_hws", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("celectricunicorn.trace_register_hws", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_15electricunicorn_trace_register_hws(__pyx_self, __pyx_v_state, __pyx_v_stop_addr);
+  __pyx_r = __pyx_pf_16celectricunicorn_trace_register_hws(__pyx_self, __pyx_v_state, __pyx_v_stop_addr);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr) {
+static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr) {
   PyObject *__pyx_v_max_result_bytes = NULL;
   PyObject *__pyx_v_max_results_size = NULL;
   PyArrayObject *__pyx_v_results = 0;
@@ -1954,7 +1954,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_pybuffernd_cregisters.data = NULL;
   __pyx_pybuffernd_cregisters.rcbuffer = &__pyx_pybuffer_cregisters;
 
-  /* "electricunicorn.pyx":15
+  /* "celectricunicorn.pyx":15
  * 
  * def trace_register_hws(state, stop_addr):
  *     max_result_bytes = 1024*1024*10  # 10 MB             # <<<<<<<<<<<<<<
@@ -1964,7 +1964,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __Pyx_INCREF(__pyx_int_10485760);
   __pyx_v_max_result_bytes = __pyx_int_10485760;
 
-  /* "electricunicorn.pyx":16
+  /* "celectricunicorn.pyx":16
  * def trace_register_hws(state, stop_addr):
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)             # <<<<<<<<<<<<<<
@@ -2003,7 +2003,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_v_max_results_size = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "electricunicorn.pyx":17
+  /* "celectricunicorn.pyx":17
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  *     cdef np.ndarray[np.uint16_t, ndim=1] results = np.zeros(max_results_size, dtype=np.ushort)             # <<<<<<<<<<<<<<
@@ -2048,7 +2048,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_v_results = ((PyArrayObject *)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "electricunicorn.pyx":19
+  /* "celectricunicorn.pyx":19
  *     cdef np.ndarray[np.uint16_t, ndim=1] results = np.zeros(max_results_size, dtype=np.ushort)
  * 
  *     memory_size = len(state.memory)             # <<<<<<<<<<<<<<
@@ -2061,7 +2061,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __pyx_v_memory_size = __pyx_t_7;
 
-  /* "electricunicorn.pyx":20
+  /* "celectricunicorn.pyx":20
  * 
  *     memory_size = len(state.memory)
  *     registers_size = len(state.registers)             # <<<<<<<<<<<<<<
@@ -2074,7 +2074,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __pyx_v_registers_size = __pyx_t_7;
 
-  /* "electricunicorn.pyx":21
+  /* "celectricunicorn.pyx":21
  *     memory_size = len(state.memory)
  *     registers_size = len(state.registers)
  *     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory             # <<<<<<<<<<<<<<
@@ -2097,7 +2097,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_v_cmemory = ((PyArrayObject *)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "electricunicorn.pyx":22
+  /* "celectricunicorn.pyx":22
  *     registers_size = len(state.registers)
  *     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory
  *     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers             # <<<<<<<<<<<<<<
@@ -2120,7 +2120,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_v_cregisters = ((PyArrayObject *)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "electricunicorn.pyx":24
+  /* "celectricunicorn.pyx":24
  *     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers
  * 
  *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr)             # <<<<<<<<<<<<<<
@@ -2137,7 +2137,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_t_11 = __Pyx_PyInt_As_uint64_t(__pyx_v_stop_addr); if (unlikely((__pyx_t_11 == ((uint64_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 24, __pyx_L1_error)
   __pyx_v_n_instructions = run_trace_register_hws(((uint16_t *)__pyx_v_results->data), ((uint8_t *)__pyx_v_cmemory->data), __pyx_v_memory_size, ((uint64_t *)__pyx_v_cregisters->data), __pyx_v_registers_size, __pyx_t_10, __pyx_t_11);
 
-  /* "electricunicorn.pyx":25
+  /* "celectricunicorn.pyx":25
  * 
  *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr)
  *     results.resize(n_instructions, refcheck=False)             # <<<<<<<<<<<<<<
@@ -2163,7 +2163,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "electricunicorn.pyx":27
+  /* "celectricunicorn.pyx":27
  *     results.resize(n_instructions, refcheck=False)
  * 
  *     return results             # <<<<<<<<<<<<<<
@@ -2175,7 +2175,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   __pyx_r = ((PyObject *)__pyx_v_results);
   goto __pyx_L0;
 
-  /* "electricunicorn.pyx":14
+  /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
  * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
@@ -2198,7 +2198,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_cregisters.rcbuffer->pybuffer);
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_results.rcbuffer->pybuffer);
   __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("electricunicorn.trace_register_hws", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("celectricunicorn.trace_register_hws", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   goto __pyx_L2;
   __pyx_L0:;
@@ -2216,7 +2216,7 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
   return __pyx_r;
 }
 
-/* "electricunicorn.pyx":29
+/* "celectricunicorn.pyx":29
  *     return results
  * 
  * def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):             # <<<<<<<<<<<<<<
@@ -2225,9 +2225,9 @@ static PyObject *__pyx_pf_15electricunicorn_trace_register_hws(CYTHON_UNUSED PyO
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_15electricunicorn_3emulate(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_15electricunicorn_3emulate = {"emulate", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_15electricunicorn_3emulate, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_15electricunicorn_3emulate(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_16celectricunicorn_3emulate(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_16celectricunicorn_3emulate = {"emulate", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_16celectricunicorn_3emulate, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_16celectricunicorn_3emulate(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_state = 0;
   PyObject *__pyx_v_stop_addr = 0;
   PyObject *__pyx_v_max_instructions = 0;
@@ -2301,18 +2301,18 @@ static PyObject *__pyx_pw_15electricunicorn_3emulate(PyObject *__pyx_self, PyObj
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("emulate", 0, 3, 4, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 29, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("electricunicorn.emulate", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("celectricunicorn.emulate", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_15electricunicorn_2emulate(__pyx_self, __pyx_v_state, __pyx_v_stop_addr, __pyx_v_max_instructions, __pyx_v_reset_entrypoint);
+  __pyx_r = __pyx_pf_16celectricunicorn_2emulate(__pyx_self, __pyx_v_state, __pyx_v_stop_addr, __pyx_v_max_instructions, __pyx_v_reset_entrypoint);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions, PyObject *__pyx_v_reset_entrypoint) {
+static PyObject *__pyx_pf_16celectricunicorn_2emulate(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions, PyObject *__pyx_v_reset_entrypoint) {
   Py_ssize_t __pyx_v_memory_size;
   Py_ssize_t __pyx_v_registers_size;
   PyArrayObject *__pyx_v_cmemory = 0;
@@ -2344,7 +2344,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __pyx_pybuffernd_cregisters.data = NULL;
   __pyx_pybuffernd_cregisters.rcbuffer = &__pyx_pybuffer_cregisters;
 
-  /* "electricunicorn.pyx":30
+  /* "celectricunicorn.pyx":30
  * 
  * def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):
  *     memory_size = len(state.memory)             # <<<<<<<<<<<<<<
@@ -2357,7 +2357,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_memory_size = __pyx_t_2;
 
-  /* "electricunicorn.pyx":31
+  /* "celectricunicorn.pyx":31
  * def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):
  *     memory_size = len(state.memory)
  *     registers_size = len(state.registers)             # <<<<<<<<<<<<<<
@@ -2370,7 +2370,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_registers_size = __pyx_t_2;
 
-  /* "electricunicorn.pyx":32
+  /* "celectricunicorn.pyx":32
  *     memory_size = len(state.memory)
  *     registers_size = len(state.registers)
  *     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory             # <<<<<<<<<<<<<<
@@ -2393,7 +2393,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __pyx_v_cmemory = ((PyArrayObject *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "electricunicorn.pyx":33
+  /* "celectricunicorn.pyx":33
  *     registers_size = len(state.registers)
  *     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory
  *     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers             # <<<<<<<<<<<<<<
@@ -2416,7 +2416,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __pyx_v_cregisters = ((PyArrayObject *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "electricunicorn.pyx":35
+  /* "celectricunicorn.pyx":35
  *     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers
  * 
  *     run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)             # <<<<<<<<<<<<<<
@@ -2434,7 +2434,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __pyx_t_8 = __Pyx_PyInt_As_uint64_t(__pyx_v_max_instructions); if (unlikely((__pyx_t_8 == ((uint64_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 35, __pyx_L1_error)
   (void)(run_emulation(((uint8_t *)__pyx_v_cmemory->data), __pyx_v_memory_size, ((uint64_t *)__pyx_v_cregisters->data), __pyx_v_registers_size, __pyx_t_6, __pyx_t_7, __pyx_t_8));
 
-  /* "electricunicorn.pyx":37
+  /* "celectricunicorn.pyx":37
  *     run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
  * 
  *     if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it             # <<<<<<<<<<<<<<
@@ -2445,7 +2445,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   __pyx_t_10 = ((!__pyx_t_9) != 0);
   if (__pyx_t_10) {
 
-    /* "electricunicorn.pyx":38
+    /* "celectricunicorn.pyx":38
  * 
  *     if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it
  *         state.ip.value = state.registers[UC_X86_REG_RIP]             # <<<<<<<<<<<<<<
@@ -2465,7 +2465,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
     __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-    /* "electricunicorn.pyx":37
+    /* "celectricunicorn.pyx":37
  *     run_emulation(<uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
  * 
  *     if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it             # <<<<<<<<<<<<<<
@@ -2474,7 +2474,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
  */
   }
 
-  /* "electricunicorn.pyx":39
+  /* "celectricunicorn.pyx":39
  *     if not reset_entrypoint:  # Do not reset the entrypoint to beginning of program, but save current RIP to it
  *         state.ip.value = state.registers[UC_X86_REG_RIP]
  *     state.step_count += 1             # <<<<<<<<<<<<<<
@@ -2487,7 +2487,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
   if (__Pyx_PyObject_SetAttrStr(__pyx_v_state, __pyx_n_s_step_count, __pyx_t_11) < 0) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
-  /* "electricunicorn.pyx":29
+  /* "celectricunicorn.pyx":29
  *     return results
  * 
  * def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):             # <<<<<<<<<<<<<<
@@ -2509,7 +2509,7 @@ static PyObject *__pyx_pf_15electricunicorn_2emulate(CYTHON_UNUSED PyObject *__p
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_cmemory.rcbuffer->pybuffer);
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_cregisters.rcbuffer->pybuffer);
   __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("electricunicorn.emulate", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("celectricunicorn.emulate", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   goto __pyx_L2;
   __pyx_L0:;
@@ -4948,17 +4948,17 @@ static PyMethodDef __pyx_methods[] = {
 #if PY_MAJOR_VERSION >= 3
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 static PyObject* __pyx_pymod_create(PyObject *spec, PyModuleDef *def); /*proto*/
-static int __pyx_pymod_exec_electricunicorn(PyObject* module); /*proto*/
+static int __pyx_pymod_exec_celectricunicorn(PyObject* module); /*proto*/
 static PyModuleDef_Slot __pyx_moduledef_slots[] = {
   {Py_mod_create, (void*)__pyx_pymod_create},
-  {Py_mod_exec, (void*)__pyx_pymod_exec_electricunicorn},
+  {Py_mod_exec, (void*)__pyx_pymod_exec_celectricunicorn},
   {0, NULL}
 };
 #endif
 
 static struct PyModuleDef __pyx_moduledef = {
     PyModuleDef_HEAD_INIT,
-    "electricunicorn",
+    "celectricunicorn",
     0, /* m_doc */
   #if CYTHON_PEP489_MULTI_PHASE_INIT
     0, /* m_size */
@@ -4994,12 +4994,12 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_RuntimeError, __pyx_k_RuntimeError, sizeof(__pyx_k_RuntimeError), 0, 0, 1, 1},
   {&__pyx_n_s_UC_X86_REG_RIP, __pyx_k_UC_X86_REG_RIP, sizeof(__pyx_k_UC_X86_REG_RIP), 0, 0, 1, 1},
   {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
+  {&__pyx_n_s_celectricunicorn, __pyx_k_celectricunicorn, sizeof(__pyx_k_celectricunicorn), 0, 0, 1, 1},
+  {&__pyx_kp_s_celectricunicorn_pyx, __pyx_k_celectricunicorn_pyx, sizeof(__pyx_k_celectricunicorn_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_cmemory, __pyx_k_cmemory, sizeof(__pyx_k_cmemory), 0, 0, 1, 1},
   {&__pyx_n_s_cregisters, __pyx_k_cregisters, sizeof(__pyx_k_cregisters), 0, 0, 1, 1},
   {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
-  {&__pyx_n_s_electricunicorn, __pyx_k_electricunicorn, sizeof(__pyx_k_electricunicorn), 0, 0, 1, 1},
-  {&__pyx_kp_s_electricunicorn_pyx, __pyx_k_electricunicorn_pyx, sizeof(__pyx_k_electricunicorn_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_emulate, __pyx_k_emulate, sizeof(__pyx_k_emulate), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_ip, __pyx_k_ip, sizeof(__pyx_k_ip), 0, 0, 1, 1},
@@ -5128,7 +5128,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
 
-  /* "electricunicorn.pyx":14
+  /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
  * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
@@ -5138,9 +5138,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__8 = PyTuple_Pack(10, __pyx_n_s_state, __pyx_n_s_stop_addr, __pyx_n_s_max_result_bytes, __pyx_n_s_max_results_size, __pyx_n_s_results, __pyx_n_s_memory_size, __pyx_n_s_registers_size, __pyx_n_s_cmemory, __pyx_n_s_cregisters, __pyx_n_s_n_instructions); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__8);
   __Pyx_GIVEREF(__pyx_tuple__8);
-  __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(2, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_electricunicorn_pyx, __pyx_n_s_trace_register_hws, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(2, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_celectricunicorn_pyx, __pyx_n_s_trace_register_hws, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 14, __pyx_L1_error)
 
-  /* "electricunicorn.pyx":29
+  /* "celectricunicorn.pyx":29
  *     return results
  * 
  * def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):             # <<<<<<<<<<<<<<
@@ -5150,7 +5150,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__10 = PyTuple_Pack(8, __pyx_n_s_state, __pyx_n_s_stop_addr, __pyx_n_s_max_instructions, __pyx_n_s_reset_entrypoint, __pyx_n_s_memory_size, __pyx_n_s_registers_size, __pyx_n_s_cmemory, __pyx_n_s_cregisters); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__10);
   __Pyx_GIVEREF(__pyx_tuple__10);
-  __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(4, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_electricunicorn_pyx, __pyx_n_s_emulate, 29, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(4, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_celectricunicorn_pyx, __pyx_n_s_emulate, 29, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -5277,11 +5277,11 @@ static int __Pyx_modinit_function_import_code(void) {
 
 
 #if PY_MAJOR_VERSION < 3
-__Pyx_PyMODINIT_FUNC initelectricunicorn(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC initelectricunicorn(void)
+__Pyx_PyMODINIT_FUNC initcelectricunicorn(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC initcelectricunicorn(void)
 #else
-__Pyx_PyMODINIT_FUNC PyInit_electricunicorn(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC PyInit_electricunicorn(void)
+__Pyx_PyMODINIT_FUNC PyInit_celectricunicorn(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC PyInit_celectricunicorn(void)
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 {
   return PyModuleDef_Init(&__pyx_moduledef);
@@ -5348,7 +5348,7 @@ bad:
 }
 
 
-static CYTHON_SMALL_CODE int __pyx_pymod_exec_electricunicorn(PyObject *__pyx_pyinit_module)
+static CYTHON_SMALL_CODE int __pyx_pymod_exec_celectricunicorn(PyObject *__pyx_pyinit_module)
 #endif
 #endif
 {
@@ -5358,7 +5358,7 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_electricunicorn(PyObject *__pyx_py
   #if CYTHON_PEP489_MULTI_PHASE_INIT
   if (__pyx_m) {
     if (__pyx_m == __pyx_pyinit_module) return 0;
-    PyErr_SetString(PyExc_RuntimeError, "Module 'electricunicorn' has already been imported. Re-initialisation is not supported.");
+    PyErr_SetString(PyExc_RuntimeError, "Module 'celectricunicorn' has already been imported. Re-initialisation is not supported.");
     return -1;
   }
   #elif PY_MAJOR_VERSION >= 3
@@ -5373,7 +5373,7 @@ if (!__Pyx_RefNanny) {
       Py_FatalError("failed to import 'refnanny' module");
 }
 #endif
-  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_electricunicorn(void)", 0);
+  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_celectricunicorn(void)", 0);
   if (__Pyx_check_binary_version() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #ifdef __Pxy_PyFrame_Initialize_Offsets
   __Pxy_PyFrame_Initialize_Offsets();
@@ -5412,7 +5412,7 @@ if (!__Pyx_RefNanny) {
   Py_INCREF(__pyx_m);
   #else
   #if PY_MAJOR_VERSION < 3
-  __pyx_m = Py_InitModule4("electricunicorn", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
+  __pyx_m = Py_InitModule4("celectricunicorn", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
   #else
   __pyx_m = PyModule_Create(&__pyx_moduledef);
   #endif
@@ -5431,14 +5431,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_electricunicorn) {
+  if (__pyx_module_is_main_celectricunicorn) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "electricunicorn")) {
-      if (unlikely(PyDict_SetItemString(modules, "electricunicorn", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "celectricunicorn")) {
+      if (unlikely(PyDict_SetItemString(modules, "celectricunicorn", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -5459,7 +5459,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "electricunicorn.pyx":1
+  /* "celectricunicorn.pyx":1
  * import numpy as np             # <<<<<<<<<<<<<<
  * cimport numpy as np
  * from unicorn.x86_const import UC_X86_REG_RIP
@@ -5469,7 +5469,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "electricunicorn.pyx":3
+  /* "celectricunicorn.pyx":3
  * import numpy as np
  * cimport numpy as np
  * from unicorn.x86_const import UC_X86_REG_RIP             # <<<<<<<<<<<<<<
@@ -5490,31 +5490,31 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "electricunicorn.pyx":14
+  /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
  * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_15electricunicorn_1trace_register_hws, NULL, __pyx_n_s_electricunicorn); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_16celectricunicorn_1trace_register_hws, NULL, __pyx_n_s_celectricunicorn); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_trace_register_hws, __pyx_t_2) < 0) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "electricunicorn.pyx":29
+  /* "celectricunicorn.pyx":29
  *     return results
  * 
  * def emulate(state, stop_addr, max_instructions, reset_entrypoint=False):             # <<<<<<<<<<<<<<
  *     memory_size = len(state.memory)
  *     registers_size = len(state.registers)
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_15electricunicorn_3emulate, NULL, __pyx_n_s_electricunicorn); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_16celectricunicorn_3emulate, NULL, __pyx_n_s_celectricunicorn); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_emulate, __pyx_t_2) < 0) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "electricunicorn.pyx":1
+  /* "celectricunicorn.pyx":1
  * import numpy as np             # <<<<<<<<<<<<<<
  * cimport numpy as np
  * from unicorn.x86_const import UC_X86_REG_RIP
@@ -5540,11 +5540,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_2);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init electricunicorn", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init celectricunicorn", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init electricunicorn");
+    PyErr_SetString(PyExc_ImportError, "init celectricunicorn");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();

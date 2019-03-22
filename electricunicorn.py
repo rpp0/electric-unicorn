@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 import sys
-sys.path.insert(0, '/home/pieter/projects/em/')
-
-
 import lief
 import os
 import numpy as np
@@ -10,7 +7,7 @@ import argparse
 import binascii
 import pickle
 from datetime import datetime
-from electricunicorn import trace_register_hws, emulate
+from celectricunicorn import trace_register_hws, emulate
 from unicorn.x86_const import *
 from dependencygraph import DependencyGraph, DependencyGraphKey
 from inputs import InputMeta
@@ -87,8 +84,7 @@ class ElectricUnicorn:
         print_numpy_as_hex(np.array(bytearray(pmk), dtype=np.uint8), label="PMK")
         print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
 
-        p = LeakagePlot(None, None)
-        p.plot(points=leakage_points, labels=None)
+        return leakage_points
 
     def emulate_hmac_sha1(self, pmk, data):
         state = X64EmulationState(self.elf)
@@ -119,8 +115,7 @@ class ElectricUnicorn:
         leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'))
         print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('buffer'), 128), label="Data (after)")
 
-        p = LeakagePlot(None, None)
-        p.plot(points=leakage_points, labels=None)
+        return leakage_points
 
     def hmac_sha1_keydep(self, skip):
         self.generic_keydep('fake_pmk', 32, 'data', 72, HMACSHA1_NUM_INSTRUCTIONS, HMACSHA1_NUM_BITFLIPS, skip=skip)
@@ -220,6 +215,7 @@ if __name__ == "__main__":
     # EMcap client for online streaming
     client = None
     if args.online_ip is not None:
+        sys.path.insert(0, '/home/pieter/projects/em/')
         from emcap_online_client import EMCapOnlineClient
         client = EMCapOnlineClient()
         client.connect(args.online_ip)
@@ -238,7 +234,7 @@ if __name__ == "__main__":
                 # data = b"\x00" * 76
                 data = random_hamming(76, subkey_size=4)
                 if args.action == 'emulate_fast':
-                    e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data)  # Unicorn to get leakage and plot fast
+                    e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data)  # Unicorn to get leakage
                 else:
                     e.emulate_hmac_sha1(pmk=pmk, data=data)  # Store in db
             elif args.elf_type == 'memcpy':

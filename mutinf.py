@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 from emulationstate import X64EmulationState
 from unicorn.x86_const import *
-from electricunicorn import emulate
+from celectricunicorn import emulate
 from inputs import InputMeta
 from util import random_uniform, print_numpy_as_hex
 from dependencygraph import DependencyGraph, DependencyGraphKey

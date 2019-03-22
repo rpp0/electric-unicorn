@@ -3,3 +3,5 @@ env/
 build/
 bin/
 *.so
+__pycache__
+*.pyc
