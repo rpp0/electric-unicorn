@@ -2,7 +2,7 @@ import numpy as np
 from util import EmulationResult
 
 
-def _hw(integer: int):
+def hw(integer: int):
     return bin(integer).count("1")
 
 
@@ -13,14 +13,14 @@ def new_leakage(_, new):
 def hamming_distance_sum_leakage(old, new):
     results = np.zeros(len(new))
     for i in range(len(new)):
-        results[i] = _hw(old[i] ^ new[i])
+        results[i] = hw(old[i] ^ new[i])
     return np.sum(results)
 
 
 def hamming_distance_leakage(old, new):
     results = []
     for i in range(len(new)):
-        results.append(_hw(old[i] ^ new[i]))
+        results.append(hw(old[i] ^ new[i]))
     return results
 
 

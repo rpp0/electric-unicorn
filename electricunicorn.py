@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import struct
 import lief
 import os
 import numpy as np
@@ -17,6 +18,7 @@ from emulationstate import X64EmulationState
 from leakage_functions import *
 from emulationdb import EmulationDB
 from leakageplot import LeakagePlot
+from attack import find_correlations
 
 MEMCPY_NUM_INSTRUCTIONS = 39
 MEMCPY_NUM_BITFLIPS = int(256 / 8)
@@ -190,12 +192,34 @@ class ElectricUnicorn:
             p = LeakagePlot(trace.emulation_results_blob, hamming_distance_leakage)
             p.show()
 
+    def corr_analysis(self, args, n=128):
+        leakages = []
+        correlation_values = []
+
+        for i in range(n):
+            w0 = random_uniform(4)
+            key = w0 + b"\x00"*28
+            plaintext = random_uniform(76)
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x98badcfe)  # TODO try little endian
+            # correlation_value = hw(struct.unpack("<I", w0)[0] ^ 0x89abcdef)
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0xc3d2e1f0)
+            correlation_value = hw(struct.unpack(">I", w0)[0])  # Interesting
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x36)  # Interesting
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x5c)  # Interesting
+            leakage = self.get_hmac_sha1_leakage_fast(pmk=key, data=plaintext)
+            leakages.append(leakage)
+            correlation_values.append(correlation_value)
+
+        leakages = np.array(leakages)
+        correlation_values = np.array(correlation_values)
+        find_correlations(traces=leakages, targets=correlation_values, plot=True)
+
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
     arg_parser.add_argument('elf_path', type=str, help='Path to the ELF to analyze.')
     arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
-    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot'])
+    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot', 'corr'])
     arg_parser.add_argument('--cw-path', type=str, default=None, help='Path to store the simulated traces in (CW format).')
     arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
@@ -223,6 +247,9 @@ if __name__ == "__main__":
     # Action to perform
     if args.action == 'mi':
         e.mutual_information_analysis(args)
+
+    elif args.action == 'corr':
+        e.corr_analysis(args)
 
     elif args.action == 'emulate' or args.action == 'emulate_fast':
         for i in range(0, args.num_traces):
