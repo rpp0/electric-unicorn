@@ -192,13 +192,13 @@ class ElectricUnicorn:
             p = LeakagePlot(trace.emulation_results_blob, hamming_distance_leakage)
             p.show()
 
-    def corr_analysis(self, args, n=128):
+    def corr_analysis(self, args, n=64):
         leakages = []
         correlation_values = []
 
         for i in range(n):
             w0 = random_uniform(4)
-            key = w0 + b"\x00"*28
+            key = w0 + (b"\x00" * 28)
             plaintext = random_uniform(76)
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x98badcfe)  # TODO try little endian
             # correlation_value = hw(struct.unpack("<I", w0)[0] ^ 0x89abcdef)
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
     arg_parser.add_argument('elf_path', type=str, help='Path to the ELF to analyze.')
     arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
-    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot', 'corr'])
+    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot', 'corr', 'emma'])
     arg_parser.add_argument('--cw-path', type=str, default=None, help='Path to store the simulated traces in (CW format).')
     arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
@@ -228,11 +228,6 @@ if __name__ == "__main__":
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
-
-    keys = []
-    plaintexts = []
-    ciphertexts = []
-    trace_set = []
 
     e = ElectricUnicorn(args.elf_path)
 
@@ -282,34 +277,55 @@ if __name__ == "__main__":
     elif args.action == 'plot':
         e.plot_emulation_db()
 
-    if args.cw_path is not None:
-        """
-        if args.elf_type == 'hmac-sha1':
-            plaintexts.append(bytearray(data))
-            keys.append(bytearray(pmk))
-        elif args.elf_type == 'memcpy':
-            plaintexts.append(bytearray(buffer))
-            keys.append(bytearray(data_to_copy))
+    elif args.action == 'emma':
+        if args.cw_path is None and args.online_ip is None:
+            raise EUException("cw_path or online argument must be provided with action 'emma'")
 
-        trace_set.append(results.astype(np.float32))
+        keys = []
+        plaintexts = []
+        ciphertexts = []
+        trace_set = []
 
-        if len(trace_set) == 256:
-            assert (len(trace_set) == len(keys))
-            np_trace_set = np.array(trace_set)
-            np_plaintexts = np.array(plaintexts, dtype=np.uint8)
-            np_keys = np.array(keys, dtype=np.uint8)
+        for i in range(0, args.num_traces):
+            trace = None
 
-            if args.online_ip is None:  # Store to file
-                filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
-                np.save(os.path.join(args.dataset_path, "%s_traces.npy" % filename), np_trace_set)
-                np.save(os.path.join(args.dataset_path, "%s_textin.npy" % filename), np_plaintexts)
-                np.save(os.path.join(args.dataset_path, "%s_knownkey.npy" % filename), np_keys)
-            else:
-                client.send(np_trace_set, np_plaintexts, None, np_keys, None)
+            if args.elf_type == 'hmac-sha1':
+                if not args.key:
+                    pmk = random_hamming(32, subkey_size=4)  # Generate uniform random Hamming weights of 32-bit values
+                else:
+                    pmk = binascii.unhexlify(args.key)
+                data = random_hamming(76, subkey_size=4)
 
-            keys = []
-            plaintexts = []
-            ciphertexts = []
-            trace_set = []
-        """
-        raise NotImplementedError
+                trace = e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data)  # Unicorn to get leakage
+                keys.append(bytearray(pmk))
+                plaintexts.append(bytearray(data))
+
+            elif args.elf_type == 'memcpy':
+                data_to_copy = random_hamming(128, subkey_size=1)
+                buffer = random_hamming(128, subkey_size=1)
+
+                trace = e.get_memcpy_leakage_fast(data=data_to_copy, buffer=buffer)
+
+                keys.append(bytearray(data_to_copy))
+                plaintexts.append(bytearray(buffer))
+
+            trace_set.append(trace.astype(np.float32))
+
+            if len(trace_set) == 256:
+                assert (len(trace_set) == len(keys))
+                np_trace_set = np.array(trace_set)
+                np_plaintexts = np.array(plaintexts, dtype=np.uint8)
+                np_keys = np.array(keys, dtype=np.uint8)
+
+                if args.online_ip is None:  # Store to file
+                    filename = str(datetime.utcnow()).replace(" ", "_").replace(".", "_")
+                    np.save(os.path.join(args.cw_path, "%s_traces.npy" % filename), np_trace_set)
+                    np.save(os.path.join(args.cw_path, "%s_textin.npy" % filename), np_plaintexts)
+                    np.save(os.path.join(args.cw_path, "%s_knownkey.npy" % filename), np_keys)
+                else:
+                    client.send(np_trace_set, np_plaintexts, None, np_keys, None)
+
+                keys = []
+                plaintexts = []
+                ciphertexts = []
+                trace_set = []
