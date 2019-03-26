@@ -25,7 +25,7 @@ MEMCPY_NUM_BITFLIPS = int(256 / 8)
 HMACSHA1_NUM_INSTRUCTIONS = 44344
 #HMACSHA1_NUM_INSTRUCTIONS = 6000
 #HMACSHA1_NUM_INSTRUCTIONS = 500
-HMACSHA1_NUM_BITFLIPS = 1
+HMACSHA1_NUM_BITFLIPS = 16
 
 
 class Elf:
@@ -172,8 +172,11 @@ class ElectricUnicorn:
         print(key_dependency_graph)
         print(plaintext_dependency_graph)
 
+        both_modified = DependencyGraph.from_intersection(key_dependency_graph, plaintext_dependency_graph)
+
         pickle.dump(key_dependency_graph, open('/tmp/key_dependency_graph.p', 'wb'))
         pickle.dump(plaintext_dependency_graph, open('/tmp/plaintext_dependency_graph.p', 'wb'))
+        pickle.dump(both_modified, open('/tmp/combined_dependency_graph.p', 'wb'))
 
     def mutual_information_analysis(self, args):
         if args.elf_type == 'memcpy':
