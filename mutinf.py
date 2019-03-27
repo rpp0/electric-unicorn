@@ -27,13 +27,30 @@ def calc_mi(observations):
     return mi
 
 
+def results_to_selection(threshold=0.1):
+    """
+    Take /tmp/results.p from MutInfAnalysis and convert to selection of points that have MI > threshold.
+    Save result in /tmp/selection.p
+    :return:
+    """
+    z = np.zeros(44344, dtype=np.bool)
+    with open("/tmp/results.p", "rb") as f:
+        results = pickle.load(f)
+    sel = list(set([x[0] for x in results if x[2] > threshold]))
+    z[sel] = True
+    with open("/tmp/selection.p", "wb") as f:
+        pickle.dump(z, f)
+    return z
+
+
 class MutInfAnalysis:
-    def __init__(self, elf, key_meta: InputMeta, plaintext_meta: InputMeta, num_instructions: int, skip: int):
+    def __init__(self, elf, key_meta: InputMeta, plaintext_meta: InputMeta, num_instructions: int, skip: int, limit: int):
         self.elf = elf
         self.key_meta = key_meta
         self.plaintext_meta = plaintext_meta
         self.num_instructions = num_instructions
         self.skip = skip
+        self.limit = num_instructions if limit == 0 else limit
 
     def check_whether_random_plaintexts_affect_key_dependencies(self, n=10):
         """
@@ -128,11 +145,11 @@ class MutInfAnalysis:
                 if self.skip != 0:
                     emulate(zero_state, self.elf.get_symbol_address('stop'), self.skip)
                     emulate(one_state, self.elf.get_symbol_address('stop'), self.skip)
-                for t in range(1, self.num_instructions+1-self.skip):
+                for t in range(0, self.limit):
                     emulate(zero_state, self.elf.get_symbol_address('stop'), 1)
                     emulate(one_state, self.elf.get_symbol_address('stop'), 1)
-                    one_state.diff(zero_state, b, t, one_dependency_graph, skip_dup=True)
-                    zero_state.diff(one_state, b, t, zero_dependency_graph, skip_dup=True)
+                    one_state.diff(zero_state, b, self.skip + t, one_dependency_graph, skip_dup=True)
+                    zero_state.diff(one_state, b, self.skip + t, zero_dependency_graph, skip_dup=True)
 
                 # Store observations
 

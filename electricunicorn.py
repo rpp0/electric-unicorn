@@ -25,7 +25,7 @@ MEMCPY_NUM_BITFLIPS = int(256 / 8)
 HMACSHA1_NUM_INSTRUCTIONS = 44344
 #HMACSHA1_NUM_INSTRUCTIONS = 6000
 #HMACSHA1_NUM_INSTRUCTIONS = 500
-HMACSHA1_NUM_BITFLIPS = 16
+HMACSHA1_NUM_BITFLIPS = 1
 
 
 class Elf:
@@ -182,12 +182,12 @@ class ElectricUnicorn:
         if args.elf_type == 'memcpy':
             key_meta = InputMeta("data", 128)
             plaintext_meta = InputMeta("buffer", 128)
-            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, MEMCPY_NUM_INSTRUCTIONS, skip=args.skip)
+            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, MEMCPY_NUM_INSTRUCTIONS, skip=args.skip, limit=args.limit)
             m.show()
         elif args.elf_type == 'hmac-sha1':
             key_meta = InputMeta("fake_pmk", 32)
             plaintext_meta = InputMeta("data", 72)
-            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS, skip=args.skip)
+            m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS, skip=args.skip, limit=args.limit)
             m.show()
 
     def plot_emulation_db(self):
@@ -206,9 +206,9 @@ class ElectricUnicorn:
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x98badcfe)  # TODO try little endian
             # correlation_value = hw(struct.unpack("<I", w0)[0] ^ 0x89abcdef)
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0xc3d2e1f0)
-            correlation_value = hw(struct.unpack(">I", w0)[0])  # Interesting
-            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x36)  # Interesting
-            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x5c)  # Interesting
+            # correlation_value = hw(struct.unpack(">I", w0)[0])  # Working and makes sense
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x36363636)  # Working and makes sense
+            correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x5c5c5c5c)  # Working and makes sense
             leakage = self.get_hmac_sha1_leakage_fast(pmk=key, data=plaintext)
             leakages.append(leakage)
             correlation_values.append(correlation_value)
@@ -228,6 +228,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
     arg_parser.add_argument('--key', type=str, default=None, help='Hex stream fixed key to use.')
     arg_parser.add_argument('--skip', type=int, default=0, help='Steps to skip in time.')
+    arg_parser.add_argument('--limit', type=int, default=0, help='Number of steps to take.')
     args, _ = arg_parser.parse_known_args()
 
     test_key = b"\xf8\x6b\xff\xcd\xaf\x20\xd2\x44\x4f\x5d\x36\x61\x26\xdb\xb7\x5e\xf2\x4a\xba\x28\xe2\x18\xd3\x19\xbc\xec\x7b\x87\x52\x8a\x4c\x61"
