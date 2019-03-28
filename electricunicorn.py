@@ -208,7 +208,11 @@ class ElectricUnicorn:
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0xc3d2e1f0)
             # correlation_value = hw(struct.unpack(">I", w0)[0])  # Working and makes sense
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x36363636)  # Working and makes sense
-            correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x5c5c5c5c)  # Working and makes sense
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x5c5c5c5c)  # Working and makes sense
+
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x50616972)
+            #correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x72696150)
+
             leakage = self.get_hmac_sha1_leakage_fast(pmk=key, data=plaintext)
             leakages.append(leakage)
             correlation_values.append(correlation_value)
