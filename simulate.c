@@ -331,7 +331,7 @@ uint64_t round_up(uint64_t number) {
 }
 
 
-uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr) {
+uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions) {
     printf("Memory size: %lu\n", memory_size);
     printf("Entrypoint : %lu\n", entrypoint);
     printf("Stop addr  : %lu\n", stop_addr);
@@ -365,7 +365,7 @@ uint64_t run_trace_register_hws(uint16_t* results, uint8_t* memory, uint64_t mem
 	uc_hook_add(uc, &instruction_hook, UC_HOOK_CODE, hook_code, results, 0, memory_size);
 	uc_hook_add(uc, &instruction_hook, UC_HOOK_MEM_INVALID, hook_mem_invalid, NULL, 0, 0);
 
-    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, registers, registers_size, entrypoint, stop_addr, 0);
+    uint64_t num_instructions = unicorn_execute(uc, memory, memory_size, registers, registers_size, entrypoint, stop_addr, max_instructions);
 
     printf("Emulation completed\n");
     printf("Instructions: %ld\n", num_instructions);

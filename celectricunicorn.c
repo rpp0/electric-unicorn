@@ -1823,7 +1823,7 @@ static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
 static PyObject *__pyx_n_s_ushort;
 static PyObject *__pyx_n_s_value;
 static PyObject *__pyx_n_s_zeros;
-static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr); /* proto */
+static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions); /* proto */
 static PyObject *__pyx_pf_16celectricunicorn_2emulate(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions, PyObject *__pyx_v_reset_entrypoint); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
@@ -1845,7 +1845,7 @@ static PyObject *__pyx_codeobj__11;
 /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
- * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
+ * def trace_register_hws(state, stop_addr, max_instructions):             # <<<<<<<<<<<<<<
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  */
@@ -1856,16 +1856,19 @@ static PyMethodDef __pyx_mdef_16celectricunicorn_1trace_register_hws = {"trace_r
 static PyObject *__pyx_pw_16celectricunicorn_1trace_register_hws(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_state = 0;
   PyObject *__pyx_v_stop_addr = 0;
+  PyObject *__pyx_v_max_instructions = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("trace_register_hws (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_state,&__pyx_n_s_stop_addr,0};
-    PyObject* values[2] = {0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_state,&__pyx_n_s_stop_addr,&__pyx_n_s_max_instructions,0};
+    PyObject* values[3] = {0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
         case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
         CYTHON_FALLTHROUGH;
         case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -1882,37 +1885,45 @@ static PyObject *__pyx_pw_16celectricunicorn_1trace_register_hws(PyObject *__pyx
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_stop_addr)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("trace_register_hws", 1, 2, 2, 1); __PYX_ERR(0, 14, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("trace_register_hws", 1, 3, 3, 1); __PYX_ERR(0, 14, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_max_instructions)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("trace_register_hws", 1, 3, 3, 2); __PYX_ERR(0, 14, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "trace_register_hws") < 0)) __PYX_ERR(0, 14, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
     }
     __pyx_v_state = values[0];
     __pyx_v_stop_addr = values[1];
+    __pyx_v_max_instructions = values[2];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("trace_register_hws", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 14, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("trace_register_hws", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 14, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("celectricunicorn.trace_register_hws", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_16celectricunicorn_trace_register_hws(__pyx_self, __pyx_v_state, __pyx_v_stop_addr);
+  __pyx_r = __pyx_pf_16celectricunicorn_trace_register_hws(__pyx_self, __pyx_v_state, __pyx_v_stop_addr, __pyx_v_max_instructions);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr) {
+static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_state, PyObject *__pyx_v_stop_addr, PyObject *__pyx_v_max_instructions) {
   PyObject *__pyx_v_max_result_bytes = NULL;
   PyObject *__pyx_v_max_results_size = NULL;
   PyArrayObject *__pyx_v_results = 0;
@@ -1940,6 +1951,7 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
   PyArrayObject *__pyx_t_9 = NULL;
   uint64_t __pyx_t_10;
   uint64_t __pyx_t_11;
+  uint64_t __pyx_t_12;
   __Pyx_RefNannySetupContext("trace_register_hws", 0);
   __pyx_pybuffer_results.pybuffer.buf = NULL;
   __pyx_pybuffer_results.refcount = 0;
@@ -1956,7 +1968,7 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
 
   /* "celectricunicorn.pyx":15
  * 
- * def trace_register_hws(state, stop_addr):
+ * def trace_register_hws(state, stop_addr, max_instructions):
  *     max_result_bytes = 1024*1024*10  # 10 MB             # <<<<<<<<<<<<<<
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  *     cdef np.ndarray[np.uint16_t, ndim=1] results = np.zeros(max_results_size, dtype=np.ushort)
@@ -1965,7 +1977,7 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
   __pyx_v_max_result_bytes = __pyx_int_10485760;
 
   /* "celectricunicorn.pyx":16
- * def trace_register_hws(state, stop_addr):
+ * def trace_register_hws(state, stop_addr, max_instructions):
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)             # <<<<<<<<<<<<<<
  *     cdef np.ndarray[np.uint16_t, ndim=1] results = np.zeros(max_results_size, dtype=np.ushort)
@@ -2102,7 +2114,7 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
  *     cdef np.ndarray[np.uint8_t, ndim=1] cmemory = state.memory
  *     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers             # <<<<<<<<<<<<<<
  * 
- *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr)
+ *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
  */
   __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_state, __pyx_n_s_registers); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 22, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
@@ -2123,7 +2135,7 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
   /* "celectricunicorn.pyx":24
  *     cdef np.ndarray[np.uint64_t, ndim=1] cregisters = state.registers
  * 
- *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr)             # <<<<<<<<<<<<<<
+ *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)             # <<<<<<<<<<<<<<
  *     results.resize(n_instructions, refcheck=False)
  * 
  */
@@ -2135,11 +2147,12 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
   __pyx_t_10 = __Pyx_PyInt_As_uint64_t(__pyx_t_2); if (unlikely((__pyx_t_10 == ((uint64_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 24, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_11 = __Pyx_PyInt_As_uint64_t(__pyx_v_stop_addr); if (unlikely((__pyx_t_11 == ((uint64_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 24, __pyx_L1_error)
-  __pyx_v_n_instructions = run_trace_register_hws(((uint16_t *)__pyx_v_results->data), ((uint8_t *)__pyx_v_cmemory->data), __pyx_v_memory_size, ((uint64_t *)__pyx_v_cregisters->data), __pyx_v_registers_size, __pyx_t_10, __pyx_t_11);
+  __pyx_t_12 = __Pyx_PyInt_As_uint64_t(__pyx_v_max_instructions); if (unlikely((__pyx_t_12 == ((uint64_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_v_n_instructions = run_trace_register_hws(((uint16_t *)__pyx_v_results->data), ((uint8_t *)__pyx_v_cmemory->data), __pyx_v_memory_size, ((uint64_t *)__pyx_v_cregisters->data), __pyx_v_registers_size, __pyx_t_10, __pyx_t_11, __pyx_t_12);
 
   /* "celectricunicorn.pyx":25
  * 
- *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr)
+ *     n_instructions = run_trace_register_hws(<uint16_t *>results.data, <uint8_t *>cmemory.data, memory_size, <uint64_t *>cregisters.data, registers_size, state.ip.value, stop_addr, max_instructions)
  *     results.resize(n_instructions, refcheck=False)             # <<<<<<<<<<<<<<
  * 
  *     return results
@@ -2178,7 +2191,7 @@ static PyObject *__pyx_pf_16celectricunicorn_trace_register_hws(CYTHON_UNUSED Py
   /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
- * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
+ * def trace_register_hws(state, stop_addr, max_instructions):             # <<<<<<<<<<<<<<
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  */
@@ -5131,14 +5144,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
- * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
+ * def trace_register_hws(state, stop_addr, max_instructions):             # <<<<<<<<<<<<<<
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  */
-  __pyx_tuple__8 = PyTuple_Pack(10, __pyx_n_s_state, __pyx_n_s_stop_addr, __pyx_n_s_max_result_bytes, __pyx_n_s_max_results_size, __pyx_n_s_results, __pyx_n_s_memory_size, __pyx_n_s_registers_size, __pyx_n_s_cmemory, __pyx_n_s_cregisters, __pyx_n_s_n_instructions); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_tuple__8 = PyTuple_Pack(11, __pyx_n_s_state, __pyx_n_s_stop_addr, __pyx_n_s_max_instructions, __pyx_n_s_max_result_bytes, __pyx_n_s_max_results_size, __pyx_n_s_results, __pyx_n_s_memory_size, __pyx_n_s_registers_size, __pyx_n_s_cmemory, __pyx_n_s_cregisters, __pyx_n_s_n_instructions); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__8);
   __Pyx_GIVEREF(__pyx_tuple__8);
-  __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(2, 0, 10, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_celectricunicorn_pyx, __pyx_n_s_trace_register_hws, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(3, 0, 11, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_celectricunicorn_pyx, __pyx_n_s_trace_register_hws, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 14, __pyx_L1_error)
 
   /* "celectricunicorn.pyx":29
  *     return results
@@ -5493,7 +5506,7 @@ if (!__Pyx_RefNanny) {
   /* "celectricunicorn.pyx":14
  *     cdef uint64_t run_emulation(uint8_t* memory, uint64_t memory_size, uint64_t* registers, uint64_t registers_size, uint64_t entrypoint, uint64_t stop_addr, uint64_t max_instructions);
  * 
- * def trace_register_hws(state, stop_addr):             # <<<<<<<<<<<<<<
+ * def trace_register_hws(state, stop_addr, max_instructions):             # <<<<<<<<<<<<<<
  *     max_result_bytes = 1024*1024*10  # 10 MB
  *     max_results_size = int(max_result_bytes / np.ushort().nbytes)
  */

@@ -65,15 +65,18 @@ class X64EmulationState:
         for i in range(len(select_reg)):
             dependency_graph.update(select_ind[i], b, t, select_reg[i], is_register=True, skip_dup=skip_dup)
 
-    def get_emulation_result(self, previous_state, from_memory=False):
+    def get_emulation_result(self, previous_state, registers_only=True):
         rip = self.ip.value
 
-        if from_memory:
-            prev_mem, new_mem, addresses = diff_numpy_arrays(previous_state.memory, self.memory)
-            return EmulationResult(t=self.step_count, old=prev_mem, new=new_mem, indices=addresses, is_memory=True, rip=rip)
+        prev_reg, new_reg, registers = diff_numpy_arrays(previous_state.registers, self.registers)
+        result_reg = EmulationResult(t=self.step_count, old=prev_reg, new=new_reg, indices=registers, is_memory=False, rip=rip)
+
+        if registers_only:
+            return [result_reg]
         else:
-            prev_reg, new_reg, registers = diff_numpy_arrays(previous_state.registers, self.registers)
-            return EmulationResult(t=self.step_count, old=prev_reg, new=new_reg, indices=registers, is_memory=False, rip=rip)
+            prev_mem, new_mem, addresses = diff_numpy_arrays(previous_state.memory, self.memory)
+            result_mem = EmulationResult(t=self.step_count, old=prev_mem, new=new_mem, indices=addresses, is_memory=True, rip=rip)
+            return [result_reg, result_mem]
 
     def __repr__(self):
         result = "Memory:\n"

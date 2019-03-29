@@ -16,7 +16,8 @@ from mutinf import MutInfAnalysis
 from util import EUException, random_hamming, random_uniform, print_numpy_as_hex, EmulationResult
 from emulationstate import X64EmulationState
 from leakage_functions import *
-from emulationdb import EmulationDB
+from emulationdbsqlite import EmulationDBSQLite
+from emulationdbhdf5 import EmulationDBHDF5
 from leakageplot import LeakagePlot
 from attack import find_correlations
 
@@ -54,7 +55,9 @@ class ElectricUnicorn:
     def __init__(self, elf_path):
         self.elf_path = os.path.abspath(elf_path)
         self.elf = self._analyze_elf()
-        self.emulation_db = EmulationDB()
+        self.emulation_db = EmulationDBSQLite()
+        self.emulation_db_hdf5 = EmulationDBHDF5()
+        self.emulation_db_hdf5.open("leakages.h5", 11500, "w", 256)
 
     def _analyze_elf(self):
         if self.elf_path is None:
@@ -75,46 +78,51 @@ class ElectricUnicorn:
 
         return Elf(elf, buffer)
 
-    def get_hmac_sha1_leakage_fast(self, pmk, data):
+    def get_hmac_sha1_leakage_fast(self, pmk, data, limit=0):
         state = X64EmulationState(self.elf)
         state.write_symbol('fake_pmk', pmk)
         state.write_symbol('data', data)
         state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
         # Simulate
-        leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'))
+        leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'), limit)
         print_numpy_as_hex(np.array(bytearray(pmk), dtype=np.uint8), label="PMK")
-        print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64), label="PTK")
+        ptk = state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64)
+        print_numpy_as_hex(ptk, label="PTK")
+
+        e.emulation_db_hdf5.add_trace(leakage_points, args.limit, pmk, data, ptk, None)
 
         return leakage_points
 
-    def emulate_hmac_sha1(self, pmk, data):
+    def emulate_hmac_sha1(self, pmk, data, registers_only=False, limit=0):
         state = X64EmulationState(self.elf)
         state.write_symbol("fake_pmk", pmk)
         state.write_symbol("data", data)
         state.write_register(UC_X86_REG_RSP, self.elf.sp)
+        limit = HMACSHA1_NUM_INSTRUCTIONS if limit == 0 else limit
 
         emulation_results = []
-        for t in range(0, HMACSHA1_NUM_INSTRUCTIONS):
+        for t in range(0, limit):
             if t % 10 == 0:
                 print("\rt: %d                     " % t, end='')
-            prev_state = state.copy(registers_only=True)
+            prev_state = state.copy(registers_only=registers_only)
             emulate(state, self.elf.get_symbol_address('stop'), 1)
-            emulation_result = state.get_emulation_result(prev_state, from_memory=False)
-            emulation_results.append(emulation_result)
+            emulation_result = state.get_emulation_result(prev_state, registers_only=registers_only)
+            emulation_results.extend(emulation_result)
 
         ptk = state.read_memory(self.elf.get_symbol_address('fake_ptk'), 64)
+        # TODO in db: limit, datetime, registers_only
         self.emulation_db.add('hmac_sha1', pmk, data, ptk, None, emulation_results)
         print("Added 1 trace to db")
 
-    def get_memcpy_leakage_fast(self, data, buffer):
+    def get_memcpy_leakage_fast(self, data, buffer, limit=0):
         state = X64EmulationState(self.elf)
         state.write_symbol('data', data)
         state.write_symbol('buffer', buffer)
         state.write_register(UC_X86_REG_RSP, self.elf.sp)
 
         # Simulate
-        leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'))
+        leakage_points = trace_register_hws(state, self.elf.get_symbol_address('stop'), limit)
         print_numpy_as_hex(state.read_memory(self.elf.get_symbol_address('buffer'), 128), label="Data (after)")
 
         return leakage_points
@@ -206,12 +214,12 @@ class ElectricUnicorn:
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x98badcfe)  # TODO try little endian
             # correlation_value = hw(struct.unpack("<I", w0)[0] ^ 0x89abcdef)
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0xc3d2e1f0)
-            # correlation_value = hw(struct.unpack(">I", w0)[0])  # Working and makes sense
+            correlation_value = hw(struct.unpack(">I", w0)[0])  # Working and makes sense
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x36363636)  # Working and makes sense
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x5c5c5c5c)  # Working and makes sense
 
             # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x50616972)
-            #correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x72696150)
+            # correlation_value = hw(struct.unpack(">I", w0)[0] ^ 0x72696150)
 
             leakage = self.get_hmac_sha1_leakage_fast(pmk=key, data=plaintext)
             leakages.append(leakage)
@@ -228,7 +236,7 @@ if __name__ == "__main__":
     arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
     arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot', 'corr', 'emma'])
     arg_parser.add_argument('--cw-path', type=str, default=None, help='Path to store the simulated traces in (CW format).')
-    arg_parser.add_argument('--num-traces', type=int, default=12800, help='Number of traces to simulate.')
+    arg_parser.add_argument('--num-traces', type=int, default=50000, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
     arg_parser.add_argument('--key', type=str, default=None, help='Hex stream fixed key to use.')
     arg_parser.add_argument('--skip', type=int, default=0, help='Steps to skip in time.')
@@ -264,7 +272,7 @@ if __name__ == "__main__":
                 # data = b"\x00" * 76
                 data = random_hamming(76, subkey_size=4)
                 if args.action == 'emulate_fast':
-                    e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data)  # Unicorn to get leakage
+                    e.get_hmac_sha1_leakage_fast(pmk=pmk, data=data, limit=args.limit)  # Unicorn to get leakage
                 else:
                     e.emulate_hmac_sha1(pmk=pmk, data=data)  # Store in db
             elif args.elf_type == 'memcpy':
