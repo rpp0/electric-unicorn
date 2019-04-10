@@ -57,7 +57,7 @@ class ElectricUnicorn:
         self.elf = self._analyze_elf()
         self.emulation_db = EmulationDBSQLite()
         self.emulation_db_hdf5 = EmulationDBHDF5()
-        self.emulation_db_hdf5.open("leakages.h5", 11500, "w", 256)
+        self.emulation_db_hdf5.open("leakages.h5", 11500, "a", 256)
 
     def _analyze_elf(self):
         if self.elf_path is None:
@@ -198,6 +198,12 @@ class ElectricUnicorn:
             m = MutInfAnalysis(self.elf, key_meta, plaintext_meta, HMACSHA1_NUM_INSTRUCTIONS, skip=args.skip, limit=args.limit)
             m.show()
 
+    def mutual_information_analysis2(self, args):
+        leakage, meta = self.emulation_db_hdf5.get_trace(0)
+        print(leakage)
+        print(meta)
+
+
     def plot_emulation_db(self):
         for trace in self.emulation_db.get_all():
             p = LeakagePlot(trace.emulation_results_blob, hamming_distance_leakage)
@@ -234,7 +240,7 @@ if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description='')
     arg_parser.add_argument('elf_path', type=str, help='Path to the ELF to analyze.')
     arg_parser.add_argument('elf_type', type=str, choices=['hmac-sha1', 'memcpy'], help='Algorithm that the ELF is executing.')
-    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot', 'corr', 'emma'])
+    arg_parser.add_argument('action', type=str, choices=['emulate', 'emulate_fast', 'keydep', 'mi', 'plot', 'corr', 'emma', 'template'])
     arg_parser.add_argument('--cw-path', type=str, default=None, help='Path to store the simulated traces in (CW format).')
     arg_parser.add_argument('--num-traces', type=int, default=50000, help='Number of traces to simulate.')
     arg_parser.add_argument('--online-ip', default=None, type=str, help='IP address to stream to.')
@@ -258,6 +264,9 @@ if __name__ == "__main__":
     # Action to perform
     if args.action == 'mi':
         e.mutual_information_analysis(args)
+
+    elif args.action == 'template':
+        e.mutual_information_analysis2(args)
 
     elif args.action == 'corr':
         e.corr_analysis(args)

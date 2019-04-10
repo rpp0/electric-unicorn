@@ -73,6 +73,8 @@ class EmulationDBHDF5:
 
     def open(self, filename, trace_length, mode='a', traces_per_chunk=256):
         self.database = h5py.File(filename, mode)
+        #self.register_leakages = self.database.get("register_leakages")
+        #self.meta = self.database.get("meta")
         self.register_leakages = self.database.create_dataset("register_leakages", shape=(0, trace_length), maxshape=(None, trace_length), chunks=(traces_per_chunk, trace_length), dtype='uint16', compression='gzip')
         self.meta = self.database.create_dataset("meta", shape=(0, 1), maxshape=(None, 1), chunks=(traces_per_chunk, 1), dtype=self.meta_dtype)
 
@@ -92,3 +94,6 @@ class EmulationDBHDF5:
 
         self.register_leakages.resize(self.register_leakages.shape[0] + 1, axis=0)
         self.register_leakages[-1:] = register_leakages
+
+    def get_trace(self, trace_index):
+        return self.register_leakages[trace_index, :], self.meta[trace_index, :]
